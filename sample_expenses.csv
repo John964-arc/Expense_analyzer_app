@@ -1,0 +1,37 @@
+name,amount,category,date,description
+Groceries,85.50,Food,2024-01-03,Weekly grocery run
+Uber ride,22.00,Transport,2024-01-04,Morning commute
+Netflix,15.99,Entertainment,2024-01-05,Monthly subscription
+Electricity bill,120.00,Bills,2024-01-06,Monthly electric bill
+Restaurant lunch,34.00,Food,2024-01-08,Team lunch
+Amazon order,67.89,Shopping,2024-01-09,Office supplies
+Coffee,5.50,Food,2024-01-10,Morning coffee
+Gas,55.00,Transport,2024-01-11,Car fuel
+Gym membership,40.00,Health,2024-01-12,Monthly gym fee
+Pizza delivery,28.00,Food,2024-01-14,Friday dinner
+Bus ticket,3.50,Transport,2024-01-15,City bus
+Spotify,9.99,Entertainment,2024-01-15,Music subscription
+Doctor visit,150.00,Health,2024-01-17,Checkup
+Groceries,92.30,Food,2024-01-18,Weekly shopping
+Clothes,75.00,Shopping,2024-01-20,New shirt and pants
+Internet bill,59.99,Bills,2024-01-21,Monthly internet
+Sushi dinner,48.00,Food,2024-01-22,Date night
+Uber,18.00,Transport,2024-01-23,Airport ride
+Pharmacy,23.50,Health,2024-01-24,Vitamins and meds
+Books,35.00,Education,2024-01-25,Programming books
+Water bill,45.00,Bills,2024-02-01,Monthly water
+Groceries,78.20,Food,2024-02-03,Weekly groceries
+Movie tickets,32.00,Entertainment,2024-02-05,Cinema outing
+Taxi,25.00,Transport,2024-02-06,Night ride
+Lunch,18.50,Food,2024-02-07,Work lunch
+Amazon,120.00,Shopping,2024-02-10,Electronics purchase
+Coffee,6.00,Food,2024-02-11,Cafe visit
+Metro pass,30.00,Transport,2024-02-12,Monthly metro
+Phone bill,65.00,Bills,2024-02-14,Mobile plan
+Yoga class,20.00,Health,2024-02-15,Yoga session
+Groceries,88.00,Food,2024-02-17,Weekly grocery
+Gaming,49.99,Entertainment,2024-02-18,Game purchase
+Rent,900.00,Bills,2024-02-01,Monthly rent
+Dinner,55.00,Food,2024-02-20,Restaurant dinner
+Shoes,89.00,Shopping,2024-02-22,New running shoes
+Online course,99.00,Education,2024-02-23,Python course

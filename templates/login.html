@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Login — ExpenseAI{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+
+    <div class="auth-left">
+        <div class="auth-left-content">
+            <div class="auth-brand-large">
+                <span class="brand-icon-large">◈</span>
+                <h1 class="auth-brand-title">ExpenseAI</h1>
+            </div>
+            <p class="auth-tagline">Understand your money.<br/>Predict your future.</p>
+            <div class="auth-features">
+                <div class="auth-feature">
+                    <span class="feature-dot"></span>
+                    <span>AI-powered category detection</span>
+                </div>
+                <div class="auth-feature">
+                    <span class="feature-dot"></span>
+                    <span>Spending predictions with ML</span>
+                </div>
+                <div class="auth-feature">
+                    <span class="feature-dot"></span>
+                    <span>Intelligent expense chatbot</span>
+                </div>
+                <div class="auth-feature">
+                    <span class="feature-dot"></span>
+                    <span>Real-time visual analytics</span>
+                </div>
+            </div>
+            <div class="auth-orbs">
+                <div class="orb orb-1"></div>
+                <div class="orb orb-2"></div>
+                <div class="orb orb-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-right">
+        <div class="auth-card">
+            <div class="auth-card-header">
+                <h2 class="auth-title">Welcome back</h2>
+                <p class="auth-subtitle">Sign in to your account</p>
+            </div>
+
+
+
+            <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email address</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required autocomplete="email" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" />
+                        <button type="button" class="toggle-password" onclick="togglePwd(this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-row-between">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="remember" class="checkbox-input" />
+                        <span class="checkbox-custom"></span>
+                        <span>Remember me</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full">
+                    <span>Sign In</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+            </form>
+
+            <p class="auth-switch">
+                Don't have an account?
+                <a href="{{ url_for('auth.register') }}" class="auth-switch-link">Create one</a>
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePwd(btn) {
+    var input = btn.closest('.input-wrapper').querySelector('input');
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+</script>
+{% endblock %}

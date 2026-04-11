@@ -1,0 +1,23 @@
+# Web framework
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Werkzeug==3.0.1
+
+# ML / Data science
+scikit-learn==1.3.2
+numpy==1.26.2
+scipy==1.11.4
+pandas==2.1.4
+
+# Image processing / receipt scanning
+Pillow==10.1.0
+
+# Utilities
+python-dateutil==2.8.2
+
+# Production server
+gunicorn==21.2.0
+
+# Optional: enable for full receipt OCR
+# pytesseract==0.3.10

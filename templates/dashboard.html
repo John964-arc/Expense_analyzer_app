@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — ExpenseAI{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout">
+
+    <!-- ══════════════════════════════════
+         LEFT: AI CHATBOT SIDEBAR
+    ══════════════════════════════════ -->
+    <aside class="chatbot-sidebar" id="chatbotSidebar">
+        <div class="chatbot-header">
+            <div class="chatbot-avatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7H3a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><path d="M5 14v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><circle cx="8.5" cy="17.5" r=".5" fill="currentColor"/><circle cx="15.5" cy="17.5" r=".5" fill="currentColor"/></svg>
+            </div>
+            <div>
+                <h3 class="chatbot-title">AI Assistant</h3>
+                <span class="chatbot-status">
+                    <span class="status-dot"></span>
+                    Online
+                </span>
+            </div>
+            <button class="chatbot-toggle-btn" id="chatbotToggle" onclick="toggleChatbot()" title="Minimize">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+        </div>
+
+        <div class="chatbot-messages" id="chatMessages">
+            <div class="chat-msg bot-msg">
+                <div class="msg-bubble">
+                    👋 Hi <strong>{{ current_user.username }}</strong>! I'm your AI Expense Assistant.<br/><br/>
+                    You've spent <strong>₹{{ "%.2f"|format(data.monthly_total) }}</strong> this month.<br/><br/>
+                    Ask me anything about your expenses!
+                </div>
+                <div class="msg-time">Just now</div>
+            </div>
+        </div>
+
+        <div class="chatbot-suggestions" id="chatSuggestions">
+            <div class="suggestions-label">Try asking:</div>
+            <div class="suggestion-chips">
+                <button class="suggestion-chip" onclick="sendSuggestion(this)">Where do I spend the most?</button>
+                <button class="suggestion-chip" onclick="sendSuggestion(this)">How much this month?</button>
+                <button class="suggestion-chip" onclick="sendSuggestion(this)">Predict next month</button>
+                <button class="suggestion-chip" onclick="sendSuggestion(this)">How can I save money?</button>
+                <button class="suggestion-chip" onclick="sendSuggestion(this)">Any overspending alerts?</button>
+            </div>
+        </div>
+
+        <div class="chatbot-input-area">
+            <div class="chatbot-input-wrapper">
+                <input type="text" id="chatInput" class="chatbot-input" placeholder="Ask about your expenses…" autocomplete="off" />
+                <button class="chatbot-send" id="chatSendBtn" onclick="sendMessage()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ══════════════════════════════════
+         MAIN DASHBOARD CONTENT
+    ══════════════════════════════════ -->
+    <div class="dashboard-main">
+
+        <!-- Page Header -->
+        <div class="dashboard-header">
+            <div>
+                <h1 class="dashboard-title">
+                    Good {% if now.hour < 12 %}Morning{% elif now.hour < 17 %}Afternoon{% else %}Evening{% endif %},
+                    <span class="highlight">{{ current_user.username }}</span>
+                </h1>
+                <p class="dashboard-subtitle">Here's your financial snapshot for {{ now.strftime('%B %Y') }}</p>
+            </div>
+            <a href="{{ url_for('expenses.add_expense') }}" class="btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Expense
+            </a>
+        </div>
+
+        <!-- ── KPI Stat Cards ── -->
+        <div class="stats-grid">
+            <div class="stat-card stat-card-primary">
+                <div class="stat-card-header">
+                    <span class="stat-label">This Month</span>
+                    <div class="stat-icon stat-icon-blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                </div>
+                <div class="stat-value">₹{{ "%.2f"|format(data.monthly_total) }}</div>
+                <div class="stat-change {% if data.mom_change > 0 %}change-up{% elif data.mom_change < 0 %}change-down{% else %}change-neutral{% endif %}">
+                    {% if data.mom_change > 0 %}▲{% elif data.mom_change < 0 %}▼{% else %}→{% endif %}
+                    {{ "%.1f"|format(data.mom_change|abs) }}% vs last month
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Top Category</span>
+                    <div class="stat-icon stat-icon-violet">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                    </div>
+                </div>
+                {% if data.category_totals %}
+                    {% set top_cat = data.category_totals.keys()|list|first %}
+                    {% set top_amt = data.category_totals.values()|list|first %}
+                    <div class="stat-value">{{ top_cat }}</div>
+                    <div class="stat-sub">₹{{ "%.2f"|format(top_amt) }} spent</div>
+                {% else %}
+                    <div class="stat-value">—</div>
+                    <div class="stat-sub">No data yet</div>
+                {% endif %}
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Predicted Next Month</span>
+                    <div class="stat-icon stat-icon-emerald">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                </div>
+                <div class="stat-value">₹{{ "%.2f"|format(data.predicted_next) }}</div>
+                <div class="stat-sub" style="display:flex;flex-direction:column;gap:3px;">
+                    <span class="stat-{{ data.trend }}">
+                        {% if data.trend == 'increasing' %}📈 Trend: Increasing
+                        {% elif data.trend == 'decreasing' %}📉 Trend: Decreasing
+                        {% else %}➡️ Trend: Stable{% endif %}
+                    </span>
+                    {% if data.confidence_low is defined and data.confidence_high is defined %}
+                    <span style="color:var(--text-muted);font-size:11px;">
+                        90% CI: ₹{{ "%.0f"|format(data.confidence_low) }} – ₹{{ "%.0f"|format(data.confidence_high) }}
+                    </span>
+                    {% endif %}
+                    {% if data.model_report is defined %}
+                    <span style="color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;">
+                        model: {{ data.model_report.get('best_model','—') }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Categories Active</span>
+                    <div class="stat-icon stat-icon-amber">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    </div>
+                </div>
+                <div class="stat-value">{{ data.category_totals|length }}</div>
+                <div class="stat-sub">{{ data.recent_expenses|length }} recent transactions</div>
+            </div>
+        </div>
+
+        <!-- ── Insights Bar ── -->
+        {% if data.insights %}
+        <div class="insights-bar">
+            {% for insight in data.insights %}
+            <div class="insight insight-{{ insight.type }}">
+                <span class="insight-icon">{{ insight.icon }}</span>
+                <span>{{ insight.message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ── Charts Row ── -->
+        <div class="charts-grid">
+            <div class="chart-card chart-card-large">
+                <div class="chart-card-header">
+                    <h3 class="chart-title">Monthly Spending History</h3>
+                    <span class="chart-badge">6 months</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h3 class="chart-title">Category Breakdown</h3>
+                    <span class="chart-badge">{{ now.strftime('%b') }}</span>
+                </div>
+                <div class="chart-wrapper chart-pie-wrapper">
+                    <canvas id="pieChart"></canvas>
+                </div>
+                <div class="pie-legend" id="pieLegend"></div>
+            </div>
+        </div>
+
+        <!-- ── Weekly + Recent ── -->
+        <div class="bottom-grid">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h3 class="chart-title">Weekly Spending</h3>
+                    <span class="chart-badge">This month</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="recent-card">
+                <div class="chart-card-header">
+                    <h3 class="chart-title">Recent Transactions</h3>
+                    <a href="{{ url_for('expenses.add_expense') }}" class="chart-badge chart-badge-link">+ Add</a>
+                </div>
+                <div class="transactions-list" id="transactionsList">
+                    {% if data.recent_expenses %}
+                        {% for exp in data.recent_expenses %}
+                        <div class="transaction-item" data-id="{{ exp.id }}">
+                            <div class="txn-icon txn-{{ exp.category|lower|replace(' ','-') }}">
+                                {% if exp.category == 'Food' %}🍔
+                                {% elif exp.category == 'Transport' %}🚗
+                                {% elif exp.category == 'Shopping' %}🛍️
+                                {% elif exp.category == 'Entertainment' %}🎬
+                                {% elif exp.category == 'Bills' %}⚡
+                                {% elif exp.category == 'Health' %}💊
+                                {% elif exp.category == 'Education' %}📚
+                                {% else %}📌{% endif %}
+                            </div>
+                            <div class="txn-details">
+                                <span class="txn-name">{{ exp.name }}</span>
+                                <span class="txn-meta">{{ exp.category }} · {{ exp.date }}</span>
+                            </div>
+                            <div class="txn-right">
+                                <span class="txn-amount">-₹{{ "%.2f"|format(exp.amount) }}</span>
+                                <button class="txn-delete" onclick="deleteExpense({{ exp.id }}, this)" title="Delete">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <p>No expenses yet</p>
+                            <a href="{{ url_for('expenses.add_expense') }}" class="btn-primary btn-sm">Add your first</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /dashboard-main -->
+</div><!-- /dashboard-layout -->
+
+<!-- Store chart data in JS -->
+<script id="chartData" type="application/json">
+{{ data.chart_data | tojson }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+{% endblock %}

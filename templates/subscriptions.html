@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Subscriptions — ExpenseAI{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Subscription Manager</h1>
+            <p class="page-subtitle">Track recurring payments, detect subscriptions, and get reminded before bills are due</p>
+        </div>
+    </div>
+
+    <!-- ── KPI Strip ── -->
+    <div class="subs-kpi-strip">
+        <div class="subs-kpi-card">
+            <span class="subs-kpi-icon">🔄</span>
+            <div>
+                <div class="subs-kpi-val">{{ summary.count }}</div>
+                <div class="subs-kpi-label">Active Subscriptions</div>
+            </div>
+        </div>
+        <div class="subs-kpi-card">
+            <span class="subs-kpi-icon">📅</span>
+            <div>
+                <div class="subs-kpi-val">₹{{ "%.0f"|format(summary.monthly_total) }}</div>
+                <div class="subs-kpi-label">Monthly Total</div>
+            </div>
+        </div>
+        <div class="subs-kpi-card">
+            <span class="subs-kpi-icon">📆</span>
+            <div>
+                <div class="subs-kpi-val">₹{{ "%.0f"|format(summary.annual_total) }}</div>
+                <div class="subs-kpi-label">Annual Total</div>
+            </div>
+        </div>
+        <div class="subs-kpi-card">
+            <span class="subs-kpi-icon">🔔</span>
+            <div>
+                <div class="subs-kpi-val">{{ summary.reminders|length }}</div>
+                <div class="subs-kpi-label">Due This Week</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="subs-layout">
+
+        <!-- ── Left: Active Subscriptions ── -->
+        <div>
+            <h3 class="section-title" style="margin-bottom:16px;">Your Subscriptions</h3>
+            {% if summary.recurring %}
+            <div class="subs-list">
+                {% for sub in summary.recurring %}
+                <div class="sub-item">
+                    <div class="sub-icon">
+                        {% if 'netflix' in sub.name|lower %}🎬
+                        {% elif 'spotify' in sub.name|lower %}🎵
+                        {% elif 'amazon' in sub.name|lower or 'prime' in sub.name|lower %}📦
+                        {% elif 'gym' in sub.name|lower %}💪
+                        {% elif 'rent' in sub.name|lower %}🏠
+                        {% elif 'internet' in sub.name|lower or 'wifi' in sub.name|lower %}📡
+                        {% elif 'phone' in sub.name|lower or 'mobile' in sub.name|lower %}📱
+                        {% elif 'electricity' in sub.name|lower %}⚡
+                        {% else %}🔄{% endif %}
+                    </div>
+                    <div class="sub-details">
+                        <span class="sub-name">{{ sub.name }}</span>
+                        <span class="sub-meta">
+                            {{ sub.category }}
+                            {% if sub.recurring_day %} · Bills on {{ sub.recurring_day }}{% if sub.recurring_day in [1,21,31] %}st{% elif sub.recurring_day in [2,22] %}nd{% elif sub.recurring_day in [3,23] %}rd{% else %}th{% endif %} of month{% endif %}
+                        </span>
+                    </div>
+                    <div class="sub-right">
+                        <span class="sub-amount">₹{{ "%.0f"|format(sub.amount) }}<span style="font-size:11px;color:var(--text-muted);">/mo</span></span>
+                        <button class="btn-icon-warning"
+                                onclick="removeRecurring({{ sub.id }}, this)"
+                                title="Remove recurring flag">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <span style="font-size:40px;">🔄</span>
+                <p>No recurring expenses marked yet.</p>
+                <p style="font-size:13px;color:var(--text-muted);">Go to Transactions and click 🔄 next to a recurring expense, or check AI suggestions below.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ── Right: Reminders + AI Suggestions ── -->
+        <div style="display:flex;flex-direction:column;gap:24px;">
+
+            <!-- Upcoming Reminders -->
+            {% if summary.reminders %}
+            <div class="form-card">
+                <h3 class="section-title" style="margin-bottom:16px;">🔔 Due This Week</h3>
+                {% for r in summary.reminders %}
+                <div class="reminder-item" style="background:{% if r.days_until <= 2 %}rgba(239,68,68,0.08){% else %}rgba(108,99,255,0.06){% endif %};">
+                    <div>
+                        <div class="reminder-name">{{ r.name }}</div>
+                        <div class="reminder-date">Due: {{ r.due_date }}
+                            <span class="reminder-badge {% if r.days_until == 0 %}badge-danger{% elif r.days_until <= 2 %}badge-warning{% else %}badge-ok{% endif %}">
+                                {% if r.days_until == 0 %}Today!{% elif r.days_until == 1 %}Tomorrow{% else %}In {{ r.days_until }} days{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <span class="reminder-amount">₹{{ "%.0f"|format(r.amount) }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- AI-Detected Candidates -->
+            {% if summary.candidates %}
+            <div class="form-card">
+                <h3 class="section-title" style="margin-bottom:4px;">🤖 AI-Detected Subscriptions</h3>
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">These look like subscriptions. Mark them to track properly.</p>
+                {% for c in summary.candidates %}
+                <div class="candidate-item">
+                    <div>
+                        <div class="candidate-name">{{ c.name }}</div>
+                        <div class="candidate-reason">{{ c.reason }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="color:var(--text-secondary);font-size:13px;">₹{{ "%.0f"|format(c.amount) }}</span>
+                        <button class="btn-primary btn-sm" onclick="markRecurring({{ c.id }}, this)">Mark</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function markRecurring(id, btn) {
+    fetch(`/expenses/${id}/toggle-recurring`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            const row = btn.closest('.candidate-item');
+            row.style.opacity = '0';
+            row.style.transition = 'opacity 0.3s';
+            setTimeout(() => { row.remove(); location.reload(); }, 400);
+        }
+    });
+}
+
+function removeRecurring(id, btn) {
+    if (!confirm('Remove recurring flag from this expense?')) return;
+    fetch(`/expenses/${id}/toggle-recurring`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            const row = btn.closest('.sub-item');
+            row.style.opacity = '0';
+            row.style.transition = 'opacity 0.3s';
+            setTimeout(() => { row.remove(); location.reload(); }, 400);
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Savings Goals — ExpenseAI{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+        <div>
+            <h1 class="page-title">Savings Goals</h1>
+            <p class="page-subtitle">Track your progress towards every financial milestone</p>
+        </div>
+        <button class="btn-primary" onclick="document.getElementById('newGoalModal').classList.add('open')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Goal
+        </button>
+    </div>
+
+    <!-- ── Summary Strip ── -->
+    {% if summary.active_goals > 0 %}
+    <div class="savings-summary-strip">
+        <div class="savings-kpi">
+            <span class="savings-kpi-label">Active Goals</span>
+            <span class="savings-kpi-val">{{ summary.active_goals }}</span>
+        </div>
+        <div class="savings-kpi">
+            <span class="savings-kpi-label">Total Target</span>
+            <span class="savings-kpi-val">₹{{ "%.0f"|format(summary.total_target) }}</span>
+        </div>
+        <div class="savings-kpi">
+            <span class="savings-kpi-label">Total Saved</span>
+            <span class="savings-kpi-val" style="color:#22C55E;">₹{{ "%.0f"|format(summary.total_saved) }}</span>
+        </div>
+        <div class="savings-kpi">
+            <span class="savings-kpi-label">Overall Progress</span>
+            <span class="savings-kpi-val" style="color:#6C63FF;">{{ summary.overall_pct }}%</span>
+        </div>
+        <div class="savings-kpi" style="flex:2;">
+            <span class="savings-kpi-label">Combined Progress</span>
+            <div class="savings-overall-bar">
+                <div class="savings-overall-fill" style="width:{{ summary.overall_pct }}%;"></div>
+            </div>
+        </div>
+        {% if summary.completed_goals > 0 %}
+        <div class="savings-kpi">
+            <span class="savings-kpi-label">Completed 🎉</span>
+            <span class="savings-kpi-val" style="color:#22C55E;">{{ summary.completed_goals }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ── Goals Grid ── -->
+    <div class="savings-grid">
+        {% if summary.goals %}
+            {% for goal in summary.goals %}
+            <div class="savings-card {% if goal.is_completed %}savings-card-completed{% endif %}">
+                <div class="savings-card-top">
+                    <div class="savings-icon-wrap" style="background:{{ goal.color }}22;border:2px solid {{ goal.color }}44;">
+                        <span style="font-size:24px;">{{ goal.icon }}</span>
+                    </div>
+                    <div class="savings-card-actions">
+                        {% if goal.is_completed %}
+                        <span class="completed-badge">✅ Complete!</span>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('savings.delete_goal', goal_id=goal.id) }}" style="display:inline;">
+                            <button type="submit" class="btn-icon-danger" onclick="return confirm('Delete this goal?')" title="Delete">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <h3 class="savings-card-name" style="color:{{ goal.color }};">{{ goal.name }}</h3>
+
+                <div class="savings-progress-section">
+                    <div class="savings-bar-wrap">
+                        <div class="savings-bar">
+                            <div class="savings-bar-fill" style="width:{{ goal.progress_pct }}%;background:{{ goal.color }};"></div>
+                        </div>
+                        <span class="savings-pct">{{ goal.progress_pct }}%</span>
+                    </div>
+
+                    <div class="savings-amounts">
+                        <div>
+                            <span class="savings-label">Saved</span>
+                            <span class="savings-val" style="color:{{ goal.color }};">₹{{ "%.0f"|format(goal.saved_amount) }}</span>
+                        </div>
+                        <div style="text-align:center;">
+                            <span class="savings-label">Remaining</span>
+                            <span class="savings-val">₹{{ "%.0f"|format(goal.remaining) }}</span>
+                        </div>
+                        <div style="text-align:right;">
+                            <span class="savings-label">Goal</span>
+                            <span class="savings-val">₹{{ "%.0f"|format(goal.target_amount) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="savings-meta">
+                    {% if goal.eta %}
+                    <span class="savings-meta-chip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+                        ETA: {{ goal.eta }}
+                    </span>
+                    {% endif %}
+                    {% if goal.monthly_rate and goal.monthly_rate > 0 %}
+                    <span class="savings-meta-chip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        ₹{{ "%.0f"|format(goal.monthly_rate) }}/mo needed
+                    </span>
+                    {% endif %}
+                    {% if goal.target_date %}
+                    <span class="savings-meta-chip">
+                        🎯 Target: {{ goal.target_date }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                {% if not goal.is_completed %}
+                <!-- Contribute Form -->
+                <form method="POST" action="{{ url_for('savings.add_contribution', goal_id=goal.id) }}" class="contribution-form">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <input type="number" name="amount" class="form-input" min="0.01" step="any"
+                               placeholder="Add savings…" style="flex:1;min-width:100px;" required />
+                        <input type="text" name="note" class="form-input" placeholder="Note (optional)" style="flex:1;min-width:100px;" />
+                        <button type="submit" class="btn-primary btn-sm" style="background:{{ goal.color }};">+ Add</button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state" style="grid-column:1/-1;">
+            <span style="font-size:48px;">🎯</span>
+            <p>No savings goals yet. Create your first one!</p>
+            <button class="btn-primary" onclick="document.getElementById('newGoalModal').classList.add('open')">
+                Create a Goal
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── New Goal Modal ── -->
+<div class="modal-overlay" id="newGoalModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Create Savings Goal</h3>
+            <button onclick="document.getElementById('newGoalModal').classList.remove('open')">✕</button>
+        </div>
+        <form method="POST" action="{{ url_for('savings.create_goal') }}" class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Goal Name *</label>
+                <input type="text" name="name" class="form-input" placeholder="e.g. Europe Trip, New Laptop…" required />
+            </div>
+
+            <div class="form-row" style="margin-top:16px;">
+                <div class="form-group">
+                    <label class="form-label">Target Amount *</label>
+                    <input type="number" name="target_amount" class="form-input" min="0.01" step="any" placeholder="₹ 0" required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Target Date <span class="optional">(optional)</span></label>
+                    <input type="date" name="target_date" class="form-input" />
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:16px;">
+                <label class="form-label">Choose an Icon</label>
+                <div class="icon-picker" id="iconPicker">
+                    {% for icon in goal_icons %}
+                    <label class="icon-option">
+                        <input type="radio" name="icon" value="{{ icon }}" {% if loop.first %}checked{% endif %} />
+                        <span>{{ icon }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:16px;">
+                <label class="form-label">Choose a Color</label>
+                <div class="color-picker" id="colorPicker">
+                    {% for color in goal_colors %}
+                    <label class="color-option">
+                        <input type="radio" name="color" value="{{ color }}" {% if loop.first %}checked{% endif %} />
+                        <span style="background:{{ color }};"></span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div style="display:flex;gap:12px;margin-top:24px;justify-content:flex-end;">
+                <button type="button" class="btn-ghost" onclick="document.getElementById('newGoalModal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="btn-primary">Create Goal 🎯</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -12,12 +12,18 @@ The winner is selected by lowest RMSE. Features include rolling mean,
 rolling std, and sin/cos month-of-year encoding for seasonality.
 """
 
-import numpy as np
+try:
+    import numpy as np
+    from sklearn.linear_model import LinearRegression, Ridge
+    from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+    from sklearn.pipeline import Pipeline
+    from sklearn.model_selection import LeaveOneOut
+    HAS_ML_STACK = True
+except ImportError:
+    np = None
+    HAS_ML_STACK = False
+
 from datetime import datetime
-from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import LeaveOneOut
 
 
 class ExpensePredictionModel:
@@ -35,7 +41,8 @@ class ExpensePredictionModel:
     def __init__(self):
         self.best_model      = None
         self.best_model_name = None
-        self.scaler_X        = StandardScaler()
+        if HAS_ML_STACK:
+            self.scaler_X    = StandardScaler()
         self.is_trained      = False
         self.num_months      = 0
         self.training_data   = []
@@ -48,6 +55,10 @@ class ExpensePredictionModel:
         """Train all candidate models; select best by LOOCV RMSE."""
         self.training_data = monthly_totals
         self.num_months    = len(monthly_totals)
+
+        if not HAS_ML_STACK:
+            self.is_trained = bool(monthly_totals)
+            return self.is_trained
 
         if len(monthly_totals) < 3:
             self.is_trained = bool(monthly_totals)
@@ -85,11 +96,14 @@ class ExpensePredictionModel:
 
     def predict_next_month(self) -> float:
         """Predict total expense for the next calendar month."""
-        if not self.is_trained:
+        if not self.is_trained or not self.training_data:
             return 0.0
-        if self.best_model is None:
+        
+        # Fallback to simple average if no ML stack or too few data points
+        if not HAS_ML_STACK or self.best_model is None or len(self.training_data) < 3:
             tail = self.training_data[-3:] if len(self.training_data) >= 3 else self.training_data
-            return round(float(np.mean(tail)), 2) if tail else 0.0
+            avg = sum(tail) / len(tail) if tail else 0.0
+            return round(float(avg), 2)
 
         X_next = self._build_features(self.training_data + [0])[-1:]
         raw    = self.best_model.predict(X_next)[0]
@@ -98,7 +112,7 @@ class ExpensePredictionModel:
     def predict_confidence_interval(self, confidence: float = 0.90) -> tuple:
         """Return (lower, upper) 90% prediction interval."""
         pred = self.predict_next_month()
-        if not self.is_trained or len(self.training_data) < 3:
+        if not HAS_ML_STACK or not self.is_trained or len(self.training_data) < 3:
             margin = pred * 0.15
             return (round(max(0, pred - margin), 2), round(pred + margin, 2))
 
@@ -116,10 +130,21 @@ class ExpensePredictionModel:
         data = monthly_totals if monthly_totals is not None else self.training_data
         if len(data) < 2:
             return 'stable'
+        
         tail  = data[-3:] if len(data) >= 3 else data
-        slope = np.polyfit(range(len(tail)), tail, 1)[0]
-        mean  = np.mean(tail) if np.mean(tail) > 0 else 1
-        pct   = (slope / mean) * 100
+        
+        if not HAS_ML_STACK:
+            # Basic 2-point slope fallback
+            diff = tail[-1] - tail[0]
+            mean = sum(tail) / len(tail) if tail else 0.0
+            if mean == 0:
+                return 'stable'
+            pct = (diff / mean) * 100
+        else:
+            slope = np.polyfit(range(len(tail)), tail, 1)[0]
+            mean  = np.mean(tail) if np.mean(tail) != 0 else 1.0 # Protect against zero mean
+            pct   = (slope / mean) * 100
+            
         if pct > 3:   return 'increasing'
         if pct < -3:  return 'decreasing'
         return 'stable'

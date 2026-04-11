@@ -1,63 +1,138 @@
 {% extends "base.html" %}
-{% block title %}All Expenses — ExpenseAI{% endblock %}
+{% block title %}Transactions — ExpenseAI{% endblock %}
 
 {% block content %}
 <div class="page-container">
-    <div class="page-header" style="justify-content: space-between; align-items: center; display: flex;">
+    <div class="page-header" style="justify-content: space-between; align-items: flex-start; display: flex; flex-wrap: wrap; gap: 16px;">
         <div>
-            <h1 class="page-title">All Expenses</h1>
-            <p class="page-subtitle">Manage your transaction history</p>
+            <h1 class="page-title">Transactions</h1>
+            <p class="page-subtitle">Search, filter, and manage your expense history</p>
         </div>
-        
-        <div style="display: flex; gap: 12px; align-items: center;">
-            <form action="{{ url_for('expenses.all_transactions') }}" method="GET" style="display: flex; gap: 8px;">
-                <select name="month" id="monthSelect" class="form-select" onchange="this.form.submit()" style="padding-top:8px; padding-bottom:8px; min-width: 150px;">
-                    {% for m in available_months %}
-                    <option value="{{ m.month }}" data-year="{{ m.year }}" {% if m.month == current_month and m.year == current_year %}selected{% endif %}>{{ m.label }}</option>
-                    {% endfor %}
-                </select>
-                <input type="hidden" name="year" value="{{ current_year }}" id="yearInput">
-            </form>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <!-- Export Buttons -->
+            <a href="{{ url_for('expenses.export_csv', year=current_year, month=current_month, category=current_cat) }}"
+               class="btn-export btn-export-csv" title="Download CSV">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                CSV
+            </a>
+            <a href="{{ url_for('expenses.export_pdf', year=current_year, month=current_month, category=current_cat) }}"
+               class="btn-export btn-export-pdf" title="Download PDF">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                PDF
+            </a>
             <a href="{{ url_for('expenses.add_expense', context_month=current_month, context_year=current_year) }}" class="btn-primary">
                 + Add Expense
             </a>
         </div>
     </div>
-    
+
+    <!-- ── Search & Filter Bar ── -->
+    <form action="{{ url_for('expenses.all_transactions') }}" method="GET" class="search-filter-bar" id="searchForm">
+        <input type="hidden" name="year" value="{{ current_year }}" id="yearInput" />
+
+        <!-- Keyword search -->
+        <div class="search-input-wrap">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" name="q" id="searchInput" class="form-input search-input"
+                   value="{{ current_q }}" placeholder="Search name, category, description…" autocomplete="off" />
+            {% if current_q %}
+            <button type="button" class="search-clear" onclick="clearSearch()">✕</button>
+            {% endif %}
+        </div>
+
+        <!-- Month -->
+        <select name="month" id="monthSelect" class="form-select" style="min-width:130px;" onchange="syncYear()">
+            {% for m in available_months %}
+            <option value="{{ m.month }}" data-year="{{ m.year }}"
+                {% if m.month == current_month and m.year == current_year %}selected{% endif %}>
+                {{ m.label }}
+            </option>
+            {% endfor %}
+        </select>
+
+        <!-- Category -->
+        <select name="category" class="form-select" style="min-width:130px;">
+            <option value="all" {% if current_cat == 'all' %}selected{% endif %}>All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if current_cat == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- Sort -->
+        <select name="sort" class="form-select" style="min-width:140px;">
+            <option value="newest"  {% if current_sort == 'newest'  %}selected{% endif %}>Newest First</option>
+            <option value="oldest"  {% if current_sort == 'oldest'  %}selected{% endif %}>Oldest First</option>
+            <option value="highest" {% if current_sort == 'highest' %}selected{% endif %}>Highest Amount</option>
+            <option value="lowest"  {% if current_sort == 'lowest'  %}selected{% endif %}>Lowest Amount</option>
+        </select>
+
+        <button type="submit" class="btn-primary" style="white-space:nowrap;">Search</button>
+    </form>
+
+    <!-- ── Results Summary ── -->
     <div class="form-card">
-        <h3 style="margin-bottom: 24px; color: var(--text-secondary); font-size: 16px;">Total for month: <span style="color: var(--text-primary);">₹{{ "%.2f"|format(total) }}</span></h3>
-        <div class="transactions-list">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+            <h3 style="color:var(--text-secondary);font-size:15px;">
+                {{ expenses|length }} transaction{% if expenses|length != 1 %}s{% endif %}
+                {% if current_q %} matching "<strong style="color:var(--text-primary);">{{ current_q }}</strong>"{% endif %}
+                &nbsp;·&nbsp; Total: <span style="color:var(--text-primary);">₹{{ "%.2f"|format(total) }}</span>
+            </h3>
+        </div>
+
+        <div class="transactions-list" id="txnList">
             {% if expenses %}
                 {% for exp in expenses %}
-                <div class="transaction-item" data-id="{{ exp.id }}" style="padding: 16px 20px; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 8px;">
+                <div class="transaction-item" data-id="{{ exp.id }}" style="padding:16px 20px;border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:8px;">
                     <div class="txn-icon txn-{{ exp.category|lower|replace(' ','-') }}">
-                        {% if exp.category == 'Food' %}🍔
-                        {% elif exp.category == 'Transport' %}🚗
-                        {% elif exp.category == 'Shopping' %}🛍️
-                        {% elif exp.category == 'Entertainment' %}🎬
-                        {% elif exp.category == 'Bills' %}⚡
-                        {% elif exp.category == 'Health' %}💊
-                        {% elif exp.category == 'Education' %}📚
-                        {% else %}📌{% endif %}
+                        {% if exp.category == 'Food' %}🍔{% elif exp.category == 'Transport' %}🚗{% elif exp.category == 'Shopping' %}🛍️{% elif exp.category == 'Entertainment' %}🎬{% elif exp.category == 'Bills' %}⚡{% elif exp.category == 'Health' %}💊{% elif exp.category == 'Education' %}📚{% else %}📌{% endif %}
                     </div>
                     <div class="txn-details">
-                        <span class="txn-name" style="font-size: 15px;">{{ exp.name }}</span>
-                        <span class="txn-meta">{{ exp.category }} · {{ exp.date.strftime('%Y-%m-%d') if exp.date else exp.date }}</span>
+                        <span class="txn-name" style="font-size:15px;">{{ exp.name }}</span>
+                        <span class="txn-meta">
+                            {{ exp.category }} · {{ exp.date.strftime('%d %b %Y') if exp.date else '' }}
+                            {% if exp.currency and exp.currency != 'INR' %}
+                            <span class="currency-badge">{{ exp.currency }}</span>
+                            {% endif %}
+                            {% if exp.is_recurring %}
+                            <span class="recurring-badge">🔄 Recurring</span>
+                            {% endif %}
+                        </span>
                         {% if exp.description %}
-                        <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 4px;">{{ exp.description }}</span>
+                        <span style="font-size:12px;color:var(--text-muted);display:block;margin-top:4px;">{{ exp.description }}</span>
                         {% endif %}
                     </div>
                     <div class="txn-right">
-                        <span class="txn-amount" style="font-size: 16px;">-₹{{ "%.2f"|format(exp.amount) }}</span>
-                        <button class="txn-delete" onclick="deleteExpenseFromAll({{ exp.id }}, this)" title="Delete" style="opacity: 0.7; pointer-events: auto;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                        </button>
+                        <div>
+                            <span class="txn-amount" style="font-size:16px;">
+                                {% if exp.currency and exp.currency != 'INR' %}
+                                {{ exp.currency }} {{ "%.2f"|format(exp.amount) }}
+                                {% else %}
+                                -₹{{ "%.2f"|format(exp.amount) }}
+                                {% endif %}
+                            </span>
+                            {% if exp.converted_amount and exp.currency != 'INR' %}
+                            <span style="display:block;font-size:11px;color:var(--text-muted);text-align:right;">≈ ₹{{ "%.2f"|format(exp.converted_amount) }}</span>
+                            {% endif %}
+                        </div>
+                        <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
+                            <!-- Toggle recurring -->
+                            <button class="txn-recurring-btn {% if exp.is_recurring %}active{% endif %}"
+                                    onclick="toggleRecurring({{ exp.id }}, this)"
+                                    title="{% if exp.is_recurring %}Remove recurring{% else %}Mark as recurring{% endif %}">
+                                🔄
+                            </button>
+                            <button class="txn-delete" onclick="deleteExpenseFromAll({{ exp.id }}, this)" title="Delete" style="opacity:0.7;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
                 <div class="empty-state">
-                    <p>No expenses found for this month.</p>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <p>No expenses found{% if current_q %} for "{{ current_q }}"{% endif %}.</p>
+                    <a href="{{ url_for('expenses.all_transactions') }}" class="btn-ghost btn-sm">Clear filters</a>
                 </div>
             {% endif %}
         </div>
@@ -67,26 +142,55 @@
 
 {% block scripts %}
 <script>
-window.deleteExpenseFromAll = function(id, btnElement) {
-    if(!confirm('Are you sure you want to delete this expense?')) return;
-    
-    fetch(`/expenses/${id}`, { method: 'DELETE' })
-      .then(r => r.json())
-      .then(data => {
-          if (data.success) {
-              const item = btnElement.closest('.transaction-item');
-              item.style.opacity = '0';
-              setTimeout(() => {
-                  item.remove();
-                  window.location.reload();
-              }, 300);
-          }
-      });
-};
+function syncYear() {
+    const sel = document.getElementById('monthSelect');
+    document.getElementById('yearInput').value = sel.options[sel.selectedIndex].dataset.year;
+}
 
-document.getElementById('monthSelect').addEventListener('change', function(e) {
-    const selectedOption = e.target.options[e.target.selectedIndex];
-    document.getElementById('yearInput').value = selectedOption.getAttribute('data-year');
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchForm').submit();
+}
+
+function deleteExpenseFromAll(id, btn) {
+    if (!confirm('Delete this expense?')) return;
+    fetch(`/expenses/${id}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                const item = btn.closest('.transaction-item');
+                item.style.opacity = '0';
+                item.style.transform = 'translateX(20px)';
+                item.style.transition = 'all 0.3s';
+                setTimeout(() => { item.remove(); location.reload(); }, 350);
+            }
+        });
+}
+
+function toggleRecurring(id, btn) {
+    fetch(`/expenses/${id}/toggle-recurring`, { method: 'POST',
+        headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                btn.classList.toggle('active', d.is_recurring);
+                btn.title = d.is_recurring ? 'Remove recurring' : 'Mark as recurring';
+                const meta = btn.closest('.transaction-item').querySelector('.txn-meta');
+                let badge = meta.querySelector('.recurring-badge');
+                if (d.is_recurring) {
+                    if (!badge) { badge = document.createElement('span'); badge.className='recurring-badge'; badge.textContent='🔄 Recurring'; meta.appendChild(badge); }
+                } else {
+                    if (badge) badge.remove();
+                }
+            }
+        });
+}
+
+// Live search debounce
+let debounceTimer;
+document.getElementById('searchInput').addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => document.getElementById('searchForm').submit(), 450);
 });
 </script>
 {% endblock %}

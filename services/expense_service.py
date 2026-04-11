@@ -10,7 +10,9 @@ class ExpenseService:
     @staticmethod
     def add_expense(user_id: int, name: str, amount: float,
                     date_str: str, description: str = '',
-                    category: str = None, receipt_image: str = None) -> Expense:
+                    category: str = None, receipt_image: str = None,
+                    currency: str = 'INR', converted_amount: float = None,
+                    is_recurring: bool = False, recurring_day: int = None) -> Expense:
         """Create and persist a new expense record."""
         if category is None or category == 'auto':
             category = detect_category(name, description)
@@ -21,13 +23,17 @@ class ExpenseService:
             expense_date = datetime.utcnow()
 
         expense = Expense(
-            user_id=user_id,
-            name=name.strip(),
-            amount=round(float(amount), 2),
-            category=category,
-            date=expense_date,
-            description=description.strip(),
-            receipt_image=receipt_image,
+            user_id          = user_id,
+            name             = name.strip(),
+            amount           = round(float(amount), 2),
+            category         = category,
+            date             = expense_date,
+            description      = description.strip(),
+            receipt_image    = receipt_image,
+            currency         = currency or 'INR',
+            converted_amount = round(converted_amount, 2) if converted_amount else None,
+            is_recurring     = bool(is_recurring),
+            recurring_day    = int(recurring_day) if recurring_day else None,
         )
         db.session.add(expense)
         db.session.commit()
@@ -74,6 +80,21 @@ class ExpenseService:
         return expense
 
     @staticmethod
+    def toggle_recurring(expense_id: int, user_id: int,
+                         recurring_day: int = None) -> Expense:
+        """Flip the is_recurring flag on an expense."""
+        expense = Expense.query.filter_by(id=expense_id, user_id=user_id).first()
+        if not expense:
+            return None
+        expense.is_recurring = not expense.is_recurring
+        if expense.is_recurring and recurring_day:
+            expense.recurring_day = recurring_day
+        elif not expense.is_recurring:
+            expense.recurring_day = None
+        db.session.commit()
+        return expense
+
+    @staticmethod
     def get_monthly_totals(user_id: int, num_months: int = 6) -> list:
         """Return list of monthly total floats (oldest first)."""
         from utils.helpers import months_list
@@ -104,3 +125,43 @@ class ExpenseService:
                 if week['start'] <= e.date <= week['end']
             ), 2)
         return weeks
+
+    @staticmethod
+    def search(user_id: int, query: str = '', category: str = '',
+               sort: str = 'newest', year: int = None, month: int = None) -> list:
+        """
+        Full-text search across name, description, category.
+        Supports optional month/year filter and sort order.
+        """
+        q = Expense.query.filter(Expense.user_id == user_id)
+
+        # Month filter
+        if year and month:
+            start, end = get_month_range(year, month)
+            q = q.filter(Expense.date >= start, Expense.date <= end)
+
+        # Keyword search (partial, case-insensitive)
+        if query:
+            term = f'%{query.strip()}%'
+            q = q.filter(
+                db.or_(
+                    Expense.name.ilike(term),
+                    Expense.description.ilike(term),
+                    Expense.category.ilike(term),
+                )
+            )
+
+        # Category filter
+        if category and category != 'all':
+            q = q.filter(Expense.category == category)
+
+        # Sort
+        sort_map = {
+            'newest':  Expense.date.desc(),
+            'oldest':  Expense.date.asc(),
+            'highest': Expense.amount.desc(),
+            'lowest':  Expense.amount.asc(),
+        }
+        q = q.order_by(sort_map.get(sort, Expense.date.desc()))
+
+        return q.all()

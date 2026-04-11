@@ -13,6 +13,12 @@ pandas==2.1.4
 # Image processing / receipt scanning
 Pillow==10.1.0
 
+# PDF export
+reportlab>=4.0.0
+
+# HTTP client (currency rates, future integrations)
+requests>=2.31.0
+
 # Utilities
 python-dateutil==2.8.2
 

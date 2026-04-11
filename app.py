@@ -26,17 +26,22 @@ def create_app(config_name='default'):
     @login_manager.user_loader
     def load_user(user_id):
         from models.expense_model import User
-        # FIX: db.session.get() replaces deprecated User.query.get() (SQLAlchemy 2.x)
         return db.session.get(User, int(user_id))
 
-    # Register blueprints
-    from routes.auth_routes    import auth_bp
-    from routes.expense_routes import expenses_bp
-    from routes.chatbot_routes import chatbot_bp
+    # ── Register blueprints ───────────────────────────────────────────────
+    from routes.auth_routes         import auth_bp
+    from routes.expense_routes      import expenses_bp
+    from routes.chatbot_routes      import chatbot_bp
+    from routes.budget_routes       import budgets_bp
+    from routes.savings_routes      import savings_bp
+    from routes.subscription_routes import subscriptions_bp
 
-    app.register_blueprint(auth_bp,     url_prefix='/auth')
-    app.register_blueprint(expenses_bp, url_prefix='')
-    app.register_blueprint(chatbot_bp,  url_prefix='')
+    app.register_blueprint(auth_bp,          url_prefix='/auth')
+    app.register_blueprint(expenses_bp,      url_prefix='')
+    app.register_blueprint(chatbot_bp,       url_prefix='')
+    app.register_blueprint(budgets_bp)       # prefix='/budgets' set in blueprint
+    app.register_blueprint(savings_bp)       # prefix='/savings'
+    app.register_blueprint(subscriptions_bp) # prefix='/subscriptions'
 
     @app.route('/')
     def index():

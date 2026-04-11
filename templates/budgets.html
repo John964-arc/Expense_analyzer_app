@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Budgets — ExpenseAI{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+        <div>
+            <h1 class="page-title">Budget Goals</h1>
+            <p class="page-subtitle">Set monthly limits and track your spending against them</p>
+        </div>
+        <!-- Month Picker -->
+        <form method="GET" action="{{ url_for('budgets.index') }}" style="display:flex;gap:8px;align-items:center;">
+            <select name="month" class="form-select" onchange="this.form.submit()" style="min-width:130px;">
+                {% for m in months %}
+                <option value="{{ m.month }}" {% if m.month == current_month and m.year == current_year %}selected{% endif %} data-year="{{ m.year }}">
+                    {{ m.label }}
+                </option>
+                {% endfor %}
+            </select>
+            <input type="hidden" name="year" value="{{ current_year }}" />
+        </form>
+    </div>
+
+    <div class="budget-layout">
+
+        <!-- ── Left: Set Budget Form ── -->
+        <div class="form-card">
+            <h3 class="section-title" style="margin-bottom:20px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                Add / Update Budget
+            </h3>
+            <form method="POST" action="{{ url_for('budgets.set_budget') }}">
+                <input type="hidden" name="month" value="{{ current_month }}" />
+                <input type="hidden" name="year"  value="{{ current_year }}" />
+
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-select">
+                        <option value="overall">💰 Overall Monthly Budget</option>
+                        <option value="" disabled>──────────────────</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-top:16px;">
+                    <label class="form-label">Budget Amount (₹)</label>
+                    <div class="input-wrapper">
+                        <span class="input-prefix">₹</span>
+                        <input type="number" name="amount" class="form-input input-prefixed" min="0.01" step="any" placeholder="e.g. 5000" required />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full" style="margin-top:20px;">Set Budget</button>
+            </form>
+
+            <!-- Threshold Guide -->
+            <div class="threshold-guide" style="margin-top:24px;">
+                <h4 style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Alert Thresholds</h4>
+                <div class="threshold-item"><span class="threshold-dot" style="background:#F59E0B;"></span><span>50% — Moderate usage</span></div>
+                <div class="threshold-item"><span class="threshold-dot" style="background:#F97316;"></span><span>75% — Warning zone</span></div>
+                <div class="threshold-item"><span class="threshold-dot" style="background:#EF4444;"></span><span>90% — Critical alert</span></div>
+                <div class="threshold-item"><span class="threshold-dot" style="background:#DC2626;"></span><span>100%+ — Overspent!</span></div>
+            </div>
+        </div>
+
+        <!-- ── Right: Budget Status Cards ── -->
+        <div class="budgets-list">
+            {% if status %}
+                {% for b in status %}
+                <div class="budget-card budget-card-{{ b.alert }}">
+                    <div class="budget-card-top">
+                        <div class="budget-card-label">
+                            {% if b.category %}
+                                {% if b.label == 'Food' %}🍔
+                                {% elif b.label == 'Transport' %}🚗
+                                {% elif b.label == 'Shopping' %}🛍️
+                                {% elif b.label == 'Entertainment' %}🎬
+                                {% elif b.label == 'Bills' %}⚡
+                                {% elif b.label == 'Health' %}💊
+                                {% elif b.label == 'Education' %}📚
+                                {% else %}🏷️{% endif %}
+                            {% else %}💰{% endif %}
+                            {{ b.label }}
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span class="budget-status-badge badge-{{ b.alert }}">
+                                {% if b.alert == 'danger' or b.alert == 'critical' %}🚨 Overspent
+                                {% elif b.alert == 'warning' %}⚠️ High
+                                {% elif b.alert == 'moderate' %}💛 Moderate
+                                {% else %}✅ On Track{% endif %}
+                            </span>
+                            <form method="POST" action="{{ url_for('budgets.delete_budget', budget_id=b.id) }}" style="display:inline;">
+                                <button type="submit" class="btn-icon-danger" title="Remove budget" onclick="return confirm('Remove this budget?')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="budget-amounts">
+                        <span class="budget-spent">₹{{ "%.0f"|format(b.spent) }} spent</span>
+                        <span class="budget-total">of ₹{{ "%.0f"|format(b.budget) }}</span>
+                    </div>
+
+                    <div class="budget-progress-wrap">
+                        <div class="budget-progress-bar">
+                            <div class="budget-progress-fill fill-{{ b.alert }}"
+                                 style="width:{{ [b.pct, 100]|min }}%;transition:width 0.8s ease;"></div>
+                        </div>
+                        <span class="budget-pct">{{ b.pct }}%</span>
+                    </div>
+
+                    <div class="budget-footer">
+                        {% if b.overspent %}
+                        <span style="color:#EF4444;font-size:13px;">₹{{ "%.0f"|format(b.spent - b.budget) }} over budget!</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);font-size:13px;">₹{{ "%.0f"|format(b.remaining) }} remaining</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty-state" style="grid-column:1/-1;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="50" height="50"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+                <p>No budgets set for {{ now.strftime('%B %Y') }} yet.</p>
+                <p style="font-size:13px;color:var(--text-muted);">Use the form on the left to set your first budget goal.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

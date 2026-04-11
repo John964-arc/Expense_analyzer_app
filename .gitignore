@@ -20,3 +20,8 @@ __pycache__/
 
 # Project specific
 temp_restore/
+instance/
+database/*.sqlite
+database/*.sqlite3
+static/uploads/profiles/*
+!static/uploads/profiles/.gitkeep

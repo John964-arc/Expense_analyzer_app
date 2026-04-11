@@ -35,11 +35,16 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="amount">Amount (USD) <span class="required">*</span></label>
-                            <div class="input-wrapper">
-                                <span class="input-prefix">₹</span>
-                                <input type="number" id="amount" name="amount" class="form-input input-prefixed" placeholder="0.00" step="0.01" min="0.01" required />
+                            <label class="form-label" for="amount">Amount <span class="required">*</span></label>
+                            <div class="input-wrapper" style="display:flex;gap:0;">
+                                <select id="currency" name="currency" class="form-select" style="width:90px;border-radius:var(--radius-sm) 0 0 var(--radius-sm);border-right:none;" onchange="updateCurrencyPreview()">
+                                    {% for c in currencies %}
+                                    <option value="{{ c }}" {% if c == 'INR' %}selected{% endif %}>{{ c }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="number" id="amount" name="amount" class="form-input" placeholder="0.00" step="0.01" min="0.01" required style="border-radius:0 var(--radius-sm) var(--radius-sm) 0;" oninput="updateCurrencyPreview()" />
                             </div>
+                            <div id="convertedPreview" style="font-size:12px;color:var(--text-muted);margin-top:4px;display:none;">≈ <span id="convertedVal"></span> INR</div>
                         </div>
                     </div>
 
@@ -74,6 +79,23 @@
                         <label class="form-label" for="description">Description <span class="optional">(optional)</span></label>
                         <div class="input-wrapper">
                             <textarea id="description" name="description" class="form-textarea" placeholder="Any extra notes about this expense…" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Recurring / Subscription toggle -->
+                    <div class="form-group">
+                        <label class="form-label">Recurring / Subscription</label>
+                        <div class="recurring-toggle-row">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="is_recurring" name="is_recurring" value="1" onchange="toggleRecurringDay()" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label" id="recurringLabel">Not recurring</span>
+                        </div>
+                        <div id="recurringDayWrap" style="display:none;margin-top:10px;">
+                            <label class="form-label" for="recurring_day">Billing day of month</label>
+                            <input type="number" id="recurring_day" name="recurring_day" class="form-input" min="1" max="31" placeholder="e.g. 1 (first of every month)" style="max-width:200px;" />
+                            <span class="optional" style="display:block;margin-top:4px;">Used to send payment reminders</span>
                         </div>
                     </div>
                 </div>
@@ -166,6 +188,33 @@
 
 {% block scripts %}
 <script>
+// Live currency conversion preview
+var ratesCache = {};
+function updateCurrencyPreview() {
+    var currency = document.getElementById('currency').value;
+    var amount   = parseFloat(document.getElementById('amount').value);
+    var preview  = document.getElementById('convertedPreview');
+    if (currency === 'INR' || isNaN(amount) || amount <= 0) { preview.style.display = 'none'; return; }
+    if (ratesCache[currency]) {
+        var converted = (amount * ratesCache[currency]).toFixed(2);
+        document.getElementById('convertedVal').textContent = '₹' + parseFloat(converted).toLocaleString('en-IN', {minimumFractionDigits:2});
+        preview.style.display = 'block';
+    } else {
+        fetch('/api/currency/rates?base=' + currency)
+            .then(r => r.json())
+            .then(d => { if (d.success && d.rates) { ratesCache[currency] = d.rates['INR'] || 1; updateCurrencyPreview(); } })
+            .catch(() => {});
+    }
+}
+
+function toggleRecurringDay() {
+    var cb   = document.getElementById('is_recurring');
+    var wrap = document.getElementById('recurringDayWrap');
+    var lbl  = document.getElementById('recurringLabel');
+    wrap.style.display = cb.checked ? 'block' : 'none';
+    lbl.textContent  = cb.checked ? 'Marked as recurring 🔄' : 'Not recurring';
+}
+
 // Category keyword hints for client-side preview
 var categoryKeywords = {
     'Food': ['grocery','groceries','restaurant','food','lunch','dinner','breakfast','coffee','pizza','burger','cafe','eat'],

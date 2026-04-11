@@ -4,10 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}AI Expense Analyzer{% endblock %}</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+    <meta name="theme-color" content="#0F0F1A" />
+    <meta name="description" content="ExpenseAI — Your smart personal finance tracker with AI-powered insights." />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- App CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
     {% block extra_head %}{% endblock %}
 </head>
@@ -27,6 +38,18 @@
         <a href="{{ url_for('expenses.all_transactions') }}" class="nav-link {% if request.endpoint == 'expenses.all_transactions' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             Transactions
+        </a>
+        <a href="{{ url_for('budgets.index') }}" class="nav-link {% if request.blueprint == 'budgets' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+            Budgets
+        </a>
+        <a href="{{ url_for('savings.index') }}" class="nav-link {% if request.blueprint == 'savings' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2a10 10 0 0 1 10 10v2H2v-2A10 10 0 0 1 12 2z"/><path d="M8 22h8M12 18v4"/></svg>
+            Savings
+        </a>
+        <a href="{{ url_for('subscriptions.index') }}" class="nav-link {% if request.blueprint == 'subscriptions' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            Subscriptions
         </a>
         <a href="{{ url_for('expenses.add_expense') }}" class="nav-link {% if request.endpoint == 'expenses.add_expense' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
@@ -74,7 +97,6 @@
         <h2>Profile Settings</h2>
         <button class="close-sidebar" onclick="toggleProfileSidebar()">✕</button>
     </div>
-    
     <div class="profile-sidebar-content">
         <form id="profileForm" enctype="multipart/form-data">
             <div class="avatar-upload-wrapper">
@@ -91,22 +113,22 @@
                 <input type="file" id="profile_picture" name="profile_picture" accept="image/png, image/jpeg, image/gif" class="hidden-file-input" />
                 <button type="button" class="btn-ghost btn-sm btn-upload-avatar" onclick="document.getElementById('profile_picture').click()">Change Picture</button>
             </div>
-            
+
             <div class="form-group" style="margin-top: 24px;">
                 <label class="form-label">Username</label>
                 <div class="input-wrapper">
                     <input type="text" id="edit_username" name="username" class="form-input" value="{{ current_user.username }}" required />
                 </div>
             </div>
-            
-            <div class="form-group" style="margin-top: 24px;">
+
+            <div class="form-group" style="margin-top: 16px;">
                 <label class="form-label">Email</label>
                 <div class="input-wrapper">
                     <input type="text" class="form-input" value="{{ current_user.email }}" disabled style="opacity: 0.6;" />
                 </div>
                 <span class="optional">Email cannot be changed currently.</span>
             </div>
-            
+
             <div class="profile-actions" style="margin-top: 32px;">
                 <button type="button" class="btn-primary btn-full" id="saveProfileBtn" onclick="saveProfile()">
                     Save Changes
@@ -118,12 +140,20 @@
 </div>
 {% endif %}
 
-
 {% block scripts %}{% endblock %}
 <script>
 document.querySelectorAll('.flash').forEach(function(el){
     setTimeout(function(){ el.style.opacity='0'; el.style.transform='translateY(-8px)'; setTimeout(function(){ el.remove(); }, 400); }, 4000);
 });
+
+// PWA Service Worker registration
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/static/sw.js')
+            .then(reg => console.log('SW registered'))
+            .catch(err => console.log('SW registration failed:', err));
+    });
+}
 </script>
 {% if current_user.is_authenticated %}
 <script src="{{ url_for('static', filename='js/profile.js') }}"></script>

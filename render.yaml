@@ -10,7 +10,4 @@ services:
         value: production
       - key: SECRET_KEY
         generateValue: true
-    disk:
-      name: sqlite-data
-      mountPath: /opt/render/project/src/database
-      sizeGB: 1
+

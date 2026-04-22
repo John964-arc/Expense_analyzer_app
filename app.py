@@ -35,6 +35,8 @@ def create_app(config_name='default'):
     from routes.budget_routes       import budgets_bp
     from routes.savings_routes      import savings_bp
     from routes.subscription_routes import subscriptions_bp
+    from routes.import_routes       import import_bp
+    from routes.family_routes       import family_bp
 
     app.register_blueprint(auth_bp,          url_prefix='/auth')
     app.register_blueprint(expenses_bp,      url_prefix='')
@@ -42,6 +44,8 @@ def create_app(config_name='default'):
     app.register_blueprint(budgets_bp)       # prefix='/budgets' set in blueprint
     app.register_blueprint(savings_bp)       # prefix='/savings'
     app.register_blueprint(subscriptions_bp) # prefix='/subscriptions'
+    app.register_blueprint(import_bp)        # prefix='/import'
+    app.register_blueprint(family_bp)        # prefix='/family'
 
     @app.route('/')
     def index():

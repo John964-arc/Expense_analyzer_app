@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}Import Transactions — ExpenseAI{% endblock %}
+
+{% block extra_head %}
+<style>
+    .import-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    /* Upload Area */
+    .upload-box {
+        background: var(--bg-card);
+        border: 2px dashed var(--border-bright);
+        border-radius: var(--radius-lg);
+        padding: 48px;
+        text-align: center;
+        transition: all 0.3s var(--ease);
+        margin-bottom: 32px;
+        cursor: pointer;
+        position: relative;
+    }
+    .upload-box:hover, .upload-box.dragging {
+        border-color: var(--accent);
+        background: rgba(124, 92, 252, 0.05);
+        transform: translateY(-2px);
+    }
+    .upload-icon {
+        font-size: 48px;
+        color: var(--accent);
+        margin-bottom: 16px;
+        opacity: 0.8;
+    }
+    .upload-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        font-family: 'Syne', sans-serif;
+    }
+    .upload-subtitle {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    .file-input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    /* Preview Table */
+    .preview-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        animation: slideUp 0.5s var(--spring);
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .preview-header {
+        padding: 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .preview-title {
+        font-size: 18px;
+        font-weight: 700;
+        font-family: 'Syne', sans-serif;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+    .import-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    .import-table th {
+        text-align: left;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text-secondary);
+        font-weight: 600;
+        border-bottom: 1px solid var(--border);
+    }
+    .import-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-primary);
+    }
+    .import-table tr:last-child td { border-bottom: none; }
+    
+    .status-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .status-new { background: var(--success-bg); color: var(--success); }
+    .status-duplicate { background: var(--danger-bg); color: var(--danger); }
+
+    .tx-input {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text-primary);
+        padding: 6px 10px;
+        width: 100%;
+        outline: none;
+    }
+    .tx-input:focus { border-color: var(--accent); }
+
+    .actions-bar {
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.2);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    /* Checkbox styling */
+    .row-select {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .duplicate-row {
+        opacity: 0.6;
+        background: rgba(239, 68, 68, 0.02);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="import-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Import Transactions</h1>
+            <p class="page-subtitle">Upload SMS backup files (TXT, JSON, CSV) to auto-extract expenses.</p>
+        </div>
+    </div>
+
+    <!-- Upload Form -->
+    <form action="{{ url_for('imports.upload') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+        <div class="upload-box" id="dropZone">
+            <div class="upload-icon">✦</div>
+            <div class="upload-title">Drop your backup file here</div>
+            <p class="upload-subtitle">Supports .txt, .csv, and .json files. We'll extract merchant, amount, and date.</p>
+            <input type="file" name="file" class="file-input" id="fileInput" onchange="document.getElementById('uploadForm').submit()">
+        </div>
+    </form>
+
+    {% if transactions %}
+    <div class="preview-section">
+        <div class="preview-header">
+            <h2 class="preview-title">Extracted from: {{ filename }}</h2>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span id="selectedCount" style="font-size: 12px; color: var(--text-secondary)">0 selected</span>
+                <button class="btn-ghost btn-sm" onclick="toggleSelectAll()">Select All (New)</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="import-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px"><input type="checkbox" id="masterSelect" onclick="toggleSelectAll()"></th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Merchant / Name</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                    </tr>
+                </thead>
+                <tbody id="txBody">
+                    {% for tx in transactions %}
+                    <tr class="{% if tx.is_duplicate %}duplicate-row{% endif %}" data-hash="{{ tx.import_hash }}">
+                        <td>
+                            <input type="checkbox" class="row-select" {% if tx.is_duplicate %}disabled{% else %}checked{% endif %} onchange="updateCounter()">
+                        </td>
+                        <td>
+                            {% if tx.is_duplicate %}
+                            <span class="status-badge status-duplicate">Duplicate</span>
+                            {% else %}
+                            <span class="status-badge status-new">New</span>
+                            {% endif %}
+                        </td>
+                        <td><input type="text" class="tx-input tx-date" value="{{ tx.date }}"></td>
+                        <td><input type="text" class="tx-input tx-name" value="{{ tx.name }}"></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span style="color: var(--text-muted)">INR</span>
+                                <input type="number" step="0.01" class="tx-input tx-amount" value="{{ tx.amount }}">
+                            </div>
+                        </td>
+                        <td>
+                            <select class="tx-input tx-category">
+                                <option value="Food" {% if tx.category == 'Food' %}selected{% endif %}>Food</option>
+                                <option value="Transport" {% if tx.category == 'Transport' %}selected{% endif %}>Transport</option>
+                                <option value="Shopping" {% if tx.category == 'Shopping' %}selected{% endif %}>Shopping</option>
+                                <option value="Entertainment" {% if tx.category == 'Entertainment' %}selected{% endif %}>Entertainment</option>
+                                <option value="Bills" {% if tx.category == 'Bills' %}selected{% endif %}>Bills</option>
+                                <option value="Health" {% if tx.category == 'Health' %}selected{% endif %}>Health</option>
+                                <option value="Other" {% if tx.category == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="actions-bar">
+            <a href="{{ url_for('imports.index') }}" class="btn-ghost">Discard</a>
+            <button class="btn-primary" id="saveBtn" onclick="saveTransactions()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
+                Import Approved
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const txBody = document.getElementById('txBody');
+    const selectedCount = document.getElementById('selectedCount');
+
+    function updateCounter() {
+        if (!txBody) return;
+        const count = txBody.querySelectorAll('.row-select:checked').length;
+        selectedCount.textContent = `${count} selected`;
+    }
+
+    function toggleSelectAll() {
+        const master = document.getElementById('masterSelect');
+        const checkboxes = txBody.querySelectorAll('.row-select:not([disabled])');
+        checkboxes.forEach(cb => cb.checked = master.checked);
+        updateCounter();
+    }
+
+    async function saveTransactions() {
+        const rows = txBody.querySelectorAll('tr');
+        const data = [];
+
+        rows.forEach(row => {
+            const cb = row.querySelector('.row-select');
+            if (cb && cb.checked && !cb.disabled) {
+                data.push({
+                    date: row.querySelector('.tx-date').value,
+                    name: row.querySelector('.tx-name').value,
+                    amount: row.querySelector('.tx-amount').value,
+                    category: row.querySelector('.tx-category').value,
+                    import_hash: row.dataset.hash
+                });
+            }
+        });
+
+        if (data.length === 0) {
+            alert('Please select at least one transaction to import.');
+            return;
+        }
+
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+        btn.innerHTML = 'Saving...';
+
+        try {
+            const response = await fetch("{{ url_for('imports.save') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transactions: data })
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                window.location.href = result.redirect;
+            } else {
+                alert('Error: ' + result.message);
+                btn.disabled = false;
+                btn.innerHTML = 'Import Approved';
+            }
+        } catch (err) {
+            alert('Failed to save transactions.');
+            btn.disabled = false;
+            btn.innerHTML = 'Import Approved';
+        }
+    }
+
+    // Drag and drop logic
+    const dropZone = document.getElementById('dropZone');
+    if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragging'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragging'), false);
+        });
+
+        dropZone.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('fileInput').files = files;
+            document.getElementById('uploadForm').submit();
+        }, false);
+    }
+
+    document.addEventListener('DOMContentLoaded', updateCounter);
+</script>
+{% endblock %}

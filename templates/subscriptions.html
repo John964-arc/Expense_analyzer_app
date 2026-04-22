@@ -52,25 +52,36 @@
                 {% for sub in summary.recurring %}
                 <div class="sub-item">
                     <div class="sub-icon">
-                        {% if 'netflix' in sub.name|lower %}🎬
-                        {% elif 'spotify' in sub.name|lower %}🎵
-                        {% elif 'amazon' in sub.name|lower or 'prime' in sub.name|lower %}📦
-                        {% elif 'gym' in sub.name|lower %}💪
-                        {% elif 'rent' in sub.name|lower %}🏠
-                        {% elif 'internet' in sub.name|lower or 'wifi' in sub.name|lower %}📡
-                        {% elif 'phone' in sub.name|lower or 'mobile' in sub.name|lower %}📱
-                        {% elif 'electricity' in sub.name|lower %}⚡
+                        {% set icon_name = (sub.subscription_name or sub.name)|lower %}
+                        {% if 'netflix' in icon_name %}🎬
+                        {% elif 'spotify' in icon_name %}🎵
+                        {% elif 'amazon' in icon_name or 'prime' in icon_name %}📦
+                        {% elif 'gym' in icon_name or 'fit' in icon_name %}💪
+                        {% elif 'rent' in icon_name %}🏠
+                        {% elif 'internet' in icon_name or 'wifi' in icon_name %}📡
+                        {% elif 'phone' in icon_name or 'mobile' in icon_name %}📱
+                        {% elif 'electricity' in icon_name %}⚡
+                        {% elif 'google' in icon_name %}☁️
+                        {% elif 'apple' in icon_name %}🍎
                         {% else %}🔄{% endif %}
                     </div>
                     <div class="sub-details">
-                        <span class="sub-name">{{ sub.name }}</span>
+                        <span class="sub-name">
+                            {{ sub.subscription_name if sub.subscription_name else sub.name }}
+                            <span class="interval-badge interval-{{ sub.recurring_type|lower }}">
+                                {{ sub.recurring_type }}
+                            </span>
+                        </span>
                         <span class="sub-meta">
                             {{ sub.category }}
-                            {% if sub.recurring_day %} · Bills on {{ sub.recurring_day }}{% if sub.recurring_day in [1,21,31] %}st{% elif sub.recurring_day in [2,22] %}nd{% elif sub.recurring_day in [3,23] %}rd{% else %}th{% endif %} of month{% endif %}
+                            {% if sub.recurring_type == 'MONTHLY' and sub.recurring_day %} · Bills on {{ sub.recurring_day }}{% if sub.recurring_day in [1,21,31] %}st{% elif sub.recurring_day in [2,22] %}nd{% elif sub.recurring_day in [3,23] %}rd{% else %}th{% endif %} of month{% endif %}
                         </span>
                     </div>
                     <div class="sub-right">
-                        <span class="sub-amount">₹{{ "%.0f"|format(sub.amount) }}<span style="font-size:11px;color:var(--text-muted);">/mo</span></span>
+                        <div class="sub-cost-wrap">
+                            <span class="sub-amount">₹{{ "%.0f"|format(sub.amount) }}</span>
+                            <span class="sub-freq">/{% if sub.recurring_type == 'MONTHLY' %}mo{% elif sub.recurring_type == 'WEEKLY' %}wk{% else %}yr{% endif %}</span>
+                        </div>
                         <button class="btn-icon-warning"
                                 onclick="removeRecurring({{ sub.id }}, this)"
                                 title="Remove recurring flag">
@@ -94,12 +105,12 @@
 
             <!-- Upcoming Reminders -->
             {% if summary.reminders %}
-            <div class="form-card">
-                <h3 class="section-title" style="margin-bottom:16px;">🔔 Due This Week</h3>
+            <div class="form-card animate-slide-up">
+                <h3 class="section-title" style="margin-bottom:16px;">🔔 Upcoming Payments</h3>
                 {% for r in summary.reminders %}
                 <div class="reminder-item" style="background:{% if r.days_until <= 2 %}rgba(239,68,68,0.08){% else %}rgba(108,99,255,0.06){% endif %};">
                     <div>
-                        <div class="reminder-name">{{ r.name }}</div>
+                        <div class="reminder-name">{{ r.subscription_name or r.name }}</div>
                         <div class="reminder-date">Due: {{ r.due_date }}
                             <span class="reminder-badge {% if r.days_until == 0 %}badge-danger{% elif r.days_until <= 2 %}badge-warning{% else %}badge-ok{% endif %}">
                                 {% if r.days_until == 0 %}Today!{% elif r.days_until == 1 %}Tomorrow{% else %}In {{ r.days_until }} days{% endif %}
@@ -114,18 +125,26 @@
 
             <!-- AI-Detected Candidates -->
             {% if summary.candidates %}
-            <div class="form-card">
+            <div class="form-card animate-slide-up">
                 <h3 class="section-title" style="margin-bottom:4px;">🤖 AI-Detected Subscriptions</h3>
-                <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">These look like subscriptions. Mark them to track properly.</p>
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">These look like recurring expenses. Review and mark them.</p>
                 {% for c in summary.candidates %}
                 <div class="candidate-item">
-                    <div>
-                        <div class="candidate-name">{{ c.name }}</div>
-                        <div class="candidate-reason">{{ c.reason }}</div>
+                    <div style="flex:1;">
+                        <input type="text" 
+                               id="sub_name_{{ c.id }}" 
+                               value="{{ c.subscription_name_suggestion }}" 
+                               class="sub-inline-input" 
+                               title="Click to edit canonical name">
+                        <div class="candidate-reason">
+                            <span class="reason-badge">{{ c.reason }}</span>
+                            <span class="interval-badge interval-{{ c.detected_interval|lower }}">{{ c.detected_interval }}</span>
+                        </div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="color:var(--text-secondary);font-size:13px;">₹{{ "%.0f"|format(c.amount) }}</span>
-                        <button class="btn-primary btn-sm" onclick="markRecurring({{ c.id }}, this)">Mark</button>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span style="color:var(--text-primary);font-weight:700;">₹{{ "%.0f"|format(c.amount) }}</span>
+                        <button class="btn-primary btn-sm" 
+                                onclick="markRecurring({{ c.id }}, '{{ c.detected_interval }}', this)">Mark</button>
                     </div>
                 </div>
                 {% endfor %}
@@ -135,23 +154,90 @@
         </div>
     </div>
 </div>
+
+<style>
+/* New styles for subscriptions enhancement */
+.interval-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin-left: 6px;
+}
+.interval-weekly { background: rgba(16, 185, 129, 0.1); color: #10B981; }
+.interval-monthly { background: rgba(108, 99, 255, 0.1); color: var(--accent); }
+.interval-yearly { background: rgba(245, 158, 11, 0.1); color: #F59E0B; }
+
+.sub-name {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.sub-cost-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-right: 15px;
+}
+.sub-freq {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.sub-inline-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed transparent;
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: 2px 0;
+    width: 100%;
+    margin-bottom: 4px;
+    transition: border-color 0.2s;
+}
+.sub-inline-input:hover, .sub-inline-input:focus {
+    border-bottom-color: var(--border);
+    outline: none;
+}
+.reason-badge {
+    font-size: 10px;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.candidate-reason {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-function markRecurring(id, btn) {
+function markRecurring(id, interval, btn) {
+    const subName = document.getElementById('sub_name_' + id).value;
+    
     fetch(`/expenses/${id}/toggle-recurring`, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({})
+        body: JSON.stringify({
+            recurring_type: interval,
+            subscription_name: subName
+        })
     })
     .then(r => r.json())
     .then(d => {
         if (d.success) {
             const row = btn.closest('.candidate-item');
             row.style.opacity = '0';
-            row.style.transition = 'opacity 0.3s';
-            setTimeout(() => { row.remove(); location.reload(); }, 400);
+            row.style.transform = 'translateX(20px)';
+            row.style.transition = 'all 0.3s';
+            setTimeout(() => { location.reload(); }, 400);
         }
     });
 }
@@ -169,7 +255,7 @@ function removeRecurring(id, btn) {
             const row = btn.closest('.sub-item');
             row.style.opacity = '0';
             row.style.transition = 'opacity 0.3s';
-            setTimeout(() => { row.remove(); location.reload(); }, 400);
+            setTimeout(() => { location.reload(); }, 400);
         }
     });
 }

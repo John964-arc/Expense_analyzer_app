@@ -105,6 +105,11 @@ def add_expense():
             except Exception:
                 converted_amount = None
 
+        # Family sharing
+        group      = current_user.memberships[0].group if current_user.memberships else None
+        is_private = request.form.get('is_private') != '0' # '0' means shared
+        family_id  = group.id if (group and not is_private) else None
+
         expense = ExpenseService.add_expense(
             user_id          = current_user.id,
             name             = name,
@@ -117,6 +122,8 @@ def add_expense():
             converted_amount = converted_amount,
             is_recurring     = is_recurring,
             recurring_day    = recurring_day if is_recurring else None,
+            family_id        = family_id,
+            is_private       = is_private
         )
         flash(f'Expense "{expense.name}" added to {expense.category}!', 'success')
         return redirect(url_for('expenses.all_transactions',
@@ -192,13 +199,21 @@ def delete_expense(expense_id):
 @expenses_bp.route('/expenses/<int:expense_id>/toggle-recurring', methods=['POST'])
 @login_required
 def toggle_recurring(expense_id):
-    data          = request.get_json() or {}
-    recurring_day = data.get('recurring_day')
-    expense       = ExpenseService.toggle_recurring(expense_id, current_user.id, recurring_day)
+    data              = request.get_json() or {}
+    recurring_day     = data.get('recurring_day')
+    recurring_type    = data.get('recurring_type', 'MONTHLY')
+    subscription_name = data.get('subscription_name')
+    
+    expense = ExpenseService.toggle_recurring(
+        expense_id=expense_id, 
+        user_id=current_user.id, 
+        recurring_day=recurring_day,
+        recurring_type=recurring_type,
+        subscription_name=subscription_name
+    )
     if not expense:
         return jsonify({'success': False, 'error': 'Not found'}), 404
     return jsonify({'success': True, 'is_recurring': expense.is_recurring})
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # EXPORT

@@ -28,6 +28,12 @@ def _run_migrations():
         'ALTER TABLE expenses ADD COLUMN converted_amount FLOAT',
         'ALTER TABLE expenses ADD COLUMN is_recurring BOOLEAN DEFAULT 0',
         'ALTER TABLE expenses ADD COLUMN recurring_day INTEGER',
+        'ALTER TABLE expenses ADD COLUMN source VARCHAR(50) DEFAULT "manual"',
+        'ALTER TABLE expenses ADD COLUMN import_hash VARCHAR(64)',
+        'ALTER TABLE expenses ADD COLUMN family_id INTEGER',
+        'ALTER TABLE expenses ADD COLUMN is_private BOOLEAN DEFAULT 1',
+        'ALTER TABLE expenses ADD COLUMN recurring_type VARCHAR(20) DEFAULT "MONTHLY"',
+        'ALTER TABLE expenses ADD COLUMN subscription_name VARCHAR(100)',
         # Users table — new columns
         'ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255)',
         'ALTER TABLE users ADD COLUMN base_currency VARCHAR(3) DEFAULT "INR"',

@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+{% block title %}Family Dashboard — {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-group">
+            <h1 class="page-title">{{ group.name }}</h1>
+            <div class="family-badge">Family Group</div>
+        </div>
+        <div class="invite-header">
+            <span class="invite-label">Invite Code:</span>
+            <div class="invite-code-pill" id="inviteCode" onclick="copyInviteCode()">
+                {{ group.invite_code }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+        <div class="stat-card animate-slide-up">
+            <div class="stat-icon" style="background: rgba(108, 99, 255, 0.1); color: var(--accent);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Shared Family Spent</span>
+                <span class="stat-value">₹{{ "{:,.2f}".format(data.total_spent) }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card animate-slide-up" style="animation-delay: 0.1s;">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #F59E0B;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-5.07 4a3 3 0 0 1-5.86 0"/></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Top Spender (Month)</span>
+                <span class="stat-value" style="font-size: 1.2rem;">{{ data.top_spender }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card animate-slide-up" style="animation-delay: 0.2s;">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10B981;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Group Members</span>
+                <span class="stat-value">{{ data.members|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visualization Grid -->
+    <div class="dashboard-grid">
+        <!-- Category Pie Chart -->
+        <div class="chart-card animate-slide-up" style="animation-delay: 0.1s;">
+            <h3 class="card-title">Shared Category Distribution</h3>
+            <div class="chart-container">
+                {% if data.total_spent > 0 %}
+                <canvas id="familyPieChart"></canvas>
+                {% else %}
+                <div class="empty-chart">
+                    <p>No shared expenses yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Member Spending Bar Chart -->
+        <div class="chart-card animate-slide-up" style="animation-delay: 0.2s;">
+            <h3 class="card-title">Member-wise Spending</h3>
+            <div class="chart-container">
+                {% if data.total_spent > 0 %}
+                <canvas id="memberBarChart"></canvas>
+                {% else %}
+                <div class="empty-chart">
+                    <p>Add family members to see comparison.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Member List -->
+        <div class="list-card animate-slide-up" style="animation-delay: 0.3s; grid-column: span 2;">
+            <div class="card-header">
+                <h3 class="card-title">Family Members</h3>
+                <a href="{{ url_for('family.members') }}" class="btn-ghost btn-sm">Manage Members</a>
+            </div>
+            <div class="member-list">
+                {% for member in data.members %}
+                <div class="member-item">
+                    <div class="member-avatar">{{ member.username[0].upper() }}</div>
+                    <div class="member-info">
+                        <span class="member-name">{{ member.username }}</span>
+                        <span class="member-role">{{ member.role }}</span>
+                    </div>
+                    <div class="member-spend">
+                        <span class="spend-label">Contributed</span>
+                        <span class="spend-value">₹{{ "{:,.2f}".format(member.total_spend) }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Shared Expenses -->
+        <div class="list-card animate-slide-up" style="animation-delay: 0.4s; grid-column: span 2;">
+            <h3 class="card-title">Recent Shared Transactions</h3>
+            <div class="transactions-list">
+                {% for exp in data.recent_shared %}
+                <div class="transaction-item">
+                    <div class="item-cat-icon">{{ exp.category[0].upper() }}</div>
+                    <div class="item-details">
+                        <span class="item-name">{{ exp.name }}</span>
+                        <span class="item-meta">{{ exp.date }} • {{ exp.category }}</span>
+                    </div>
+                    <div class="item-amount">₹{{ "{:,.2f}".format(exp.amount) }}</div>
+                </div>
+                {% empty %}
+                <div class="empty-state">No shared expenses found.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.header-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.family-badge {
+    background: var(--accent-glow);
+    color: var(--accent-bright);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.invite-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-card);
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+.invite-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.invite-code-pill {
+    background: var(--bg-body);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.invite-code-pill:hover {
+    background: var(--border);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+}
+.chart-card, .list-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+}
+.chart-container {
+    height: 250px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.empty-chart {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.member-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+.member-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+.member-item:hover {
+    border-color: var(--border);
+}
+.member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+.member-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.member-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.member-role {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.member-spend {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+}
+.spend-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+.spend-value {
+    font-weight: 700;
+    color: var(--accent-bright);
+}
+
+.transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.transaction-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    background: rgba(255,255,255,0.01);
+}
+.item-cat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+.item-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.item-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.item-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.item-amount {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+@media (max-width: 900px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    .chart-card, .list-card {
+        grid-column: span 1 !important;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Pie Chart
+    const pieCtx = document.getElementById('familyPieChart');
+    if (pieCtx) {
+        new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ data.chart_data.pie.labels|tojson }},
+                datasets: [{
+                    data: {{ data.chart_data.pie.values|tojson }},
+                    backgroundColor: {{ data.chart_data.pie.colors|tojson }},
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#94A3B8', font: { size: 11 } } }
+                },
+                cutout: '70%',
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    // Member Bar Chart
+    const barCtx = document.getElementById('memberBarChart');
+    if (barCtx) {
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ data.chart_data.members.labels|tojson }},
+                datasets: [{
+                    label: 'Contribution (₹)',
+                    data: {{ data.chart_data.members.values|tojson }},
+                    backgroundColor: 'rgba(108, 99, 255, 0.6)',
+                    borderColor: 'rgba(108, 99, 255, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false }, ticks: { color: '#64748B' } },
+                    x: { grid: { display: false }, border: { display: false }, ticks: { color: '#64748B' } }
+                },
+                plugins: {
+                    legend: { display: false }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+});
+
+function copyInviteCode() {
+    const code = "{{ group.invite_code }}";
+    navigator.clipboard.writeText(code).then(() => {
+        alert('Invite code copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}

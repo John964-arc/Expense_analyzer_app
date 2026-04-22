@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Family Setup — ExpenseAI{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Family Sharing</h1>
+            <p class="page-subtitle">Collaborate on expenses and track family wealth together.</p>
+        </div>
+    </div>
+
+    <div class="family-setup-grid">
+        <!-- Create Group Card -->
+        <div class="setup-card animate-slide-up">
+            <div class="setup-card-icon" style="background: var(--accent-glow); color: var(--accent-bright);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+            <h2 class="setup-card-title">Create a New Family</h2>
+            <p class="setup-card-text">Start a new family group and invite your members using a unique code.</p>
+            
+            <form action="{{ url_for('family.create') }}" method="POST" class="setup-form">
+                <div class="form-group">
+                    <label class="form-label">Family Name</label>
+                    <input type="text" name="name" class="form-input" placeholder="e.g. The Simpsons, Johnson Family..." required />
+                </div>
+                <button type="submit" class="btn-primary btn-full">Create Group</button>
+            </form>
+        </div>
+
+        <!-- Join Group Card -->
+        <div class="setup-card animate-slide-up" style="animation-delay: 0.1s;">
+            <div class="setup-card-icon" style="background: rgba(16, 185, 129, 0.1); color: #10B981;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+            </div>
+            <h2 class="setup-card-title">Join Existing Family</h2>
+            <p class="setup-card-text">Already have a group? Enter the 6-character invite code below.</p>
+            
+            <form action="{{ url_for('family.join') }}" method="POST" class="setup-form">
+                <div class="form-group">
+                    <label class="form-label">Invite Code</label>
+                    <input type="text" name="invite_code" class="form-input code-input" placeholder="G1H4X2" maxlength="6" required style="text-transform: uppercase; letter-spacing: 0.2em; text-align: center; font-weight: 700; font-size: 1.2rem;" />
+                </div>
+                <button type="submit" class="btn-ghost btn-full" style="border: 1px solid var(--border);">Join Group</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="family-info-section animate-slide-up" style="animation-delay: 0.2s;">
+        <h3 class="info-title">Why Family Sharing?</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-icon">🕵️</div>
+                <div>
+                    <h4>Privacy First</h4>
+                    <p>Your personal expenses remain private. Use the "Share" toggle to show expenses to the family.</p>
+                </div>
+            </div>
+            <div class="info-item">
+                <div class="info-icon">📊</div>
+                <div>
+                    <h4>Aggregated Insights</h4>
+                    <p>See who spends the most and which categories are draining the family budget.</p>
+                </div>
+            </div>
+            <div class="info-item">
+                <div class="info-icon">🤝</div>
+                <div>
+                    <h4>Collaborative Tracking</h4>
+                    <p>Admin can manage members and see the overall financial health of the group.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.family-setup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 32px;
+    margin-top: 40px;
+}
+.setup-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 40px 32px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.3s, border-color 0.3s;
+}
+.setup-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent);
+}
+.setup-card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+.setup-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.setup-card-text {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 32px;
+}
+.setup-form {
+    width: 100%;
+}
+.family-info-section {
+    margin-top: 80px;
+    padding: 48px;
+    background: rgba(255,255,255,0.02);
+    border-radius: var(--radius-xl);
+    border: 1px dashed var(--border);
+}
+.info-title {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 40px;
+}
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 40px;
+}
+.info-item {
+    display: flex;
+    gap: 20px;
+}
+.info-icon {
+    font-size: 2rem;
+}
+.info-item h4 {
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+.info-item p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+</style>
+{% endblock %}

@@ -22,6 +22,7 @@ class User(UserMixin, db.Model):
     expenses      = db.relationship('Expense',      backref='owner',    lazy=True, cascade='all, delete-orphan')
     budgets       = db.relationship('Budget',        backref='owner',    lazy=True, cascade='all, delete-orphan')
     savings_goals = db.relationship('SavingsGoal',   backref='owner',    lazy=True, cascade='all, delete-orphan')
+    memberships   = db.relationship('FamilyMember',  backref='user',     lazy=True, cascade='all, delete-orphan')
 
     def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
@@ -52,8 +53,14 @@ class Expense(db.Model):
     currency         = db.Column(db.String(3),   default='INR')
     converted_amount = db.Column(db.Float,       nullable=True)   # amount in user's base_currency
     # Recurring / subscription
-    is_recurring     = db.Column(db.Boolean,     default=False)
-    recurring_day    = db.Column(db.Integer,     nullable=True)   # day-of-month for reminder
+    is_recurring      = db.Column(db.Boolean,     default=False)
+    recurring_day     = db.Column(db.Integer,     nullable=True)   # day-of-month for reminder
+    recurring_type    = db.Column(db.String(20),  default='MONTHLY') # WEEKLY, MONTHLY, YEARLY
+    subscription_name = db.Column(db.String(100), nullable=True)     # Canonical name (e.g., 'Netflix')
+    source            = db.Column(db.String(50),  default='manual')
+    import_hash      = db.Column(db.String(64),  unique=True, nullable=True)
+    family_id        = db.Column(db.Integer,     db.ForeignKey('family_groups.id'), nullable=True)
+    is_private       = db.Column(db.Boolean,     default=True)
     created_at       = db.Column(db.DateTime,    default=datetime.utcnow)
 
     def to_dict(self) -> dict:
@@ -69,6 +76,12 @@ class Expense(db.Model):
             'converted_amount': self.converted_amount,
             'is_recurring':     self.is_recurring,
             'recurring_day':    self.recurring_day,
+            'recurring_type':   self.recurring_type,
+            'subscription_name': self.subscription_name,
+            'source':           self.source,
+            'import_hash':      self.import_hash,
+            'family_id':        self.family_id,
+            'is_private':       self.is_private,
         }
 
     def __repr__(self):
@@ -181,3 +194,39 @@ class SavingsContribution(db.Model):
 
     def __repr__(self):
         return f'<Contribution goal={self.goal_id} ₹{self.amount}>'
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FAMILY
+# ─────────────────────────────────────────────────────────────────────────────
+
+class FamilyGroup(db.Model):
+    __tablename__ = 'family_groups'
+
+    id          = db.Column(db.Integer,     primary_key=True)
+    name        = db.Column(db.String(100), nullable=False)
+    invite_code = db.Column(db.String(10),  unique=True, nullable=False)
+    created_by  = db.Column(db.Integer,     db.ForeignKey('users.id'), nullable=False)
+    created_at  = db.Column(db.DateTime,    default=datetime.utcnow)
+
+    members  = db.relationship('FamilyMember', backref='group',   lazy=True, cascade='all, delete-orphan')
+    expenses = db.relationship('Expense',      backref='family',  lazy=True)
+
+    def __repr__(self):
+        return f'<FamilyGroup {self.name} [{self.invite_code}]>'
+
+
+class FamilyMember(db.Model):
+    __tablename__ = 'family_members'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'group_id', name='uq_family_member'),
+    )
+
+    id       = db.Column(db.Integer, primary_key=True)
+    user_id  = db.Column(db.Integer, db.ForeignKey('users.id'),          nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('family_groups.id'),  nullable=False)
+    role     = db.Column(db.String(20), default='MEMBER') # ADMIN, MEMBER
+    joined_at = db.Column(db.DateTime,  default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<FamilyMember user={self.user_id} group={self.group_id} role={self.role}>'

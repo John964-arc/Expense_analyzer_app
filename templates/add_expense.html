@@ -82,6 +82,22 @@
                         </div>
                     </div>
 
+                    <!-- Family Sharing toggle -->
+                    {% set group = current_user.memberships[0].group if current_user.memberships else None %}
+                    {% if group %}
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label class="form-label">Family Sharing</label>
+                        <div class="recurring-toggle-row">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="share_family" name="is_private" value="0" onchange="updateFamilyLabel(this)" />
+                                <span class="toggle-slider" style="background-color: var(--info);"></span>
+                            </label>
+                            <span class="toggle-label" id="familyLabel">Keep Private (Personal)</span>
+                        </div>
+                        <span class="optional" style="display:block;margin-top:4px;">When shared, members of "{{ group.name }}" can see this expense.</span>
+                    </div>
+                    {% endif %}
+
                     <!-- Recurring / Subscription toggle -->
                     <div class="form-group">
                         <label class="form-label">Recurring / Subscription</label>
@@ -213,6 +229,11 @@ function toggleRecurringDay() {
     var lbl  = document.getElementById('recurringLabel');
     wrap.style.display = cb.checked ? 'block' : 'none';
     lbl.textContent  = cb.checked ? 'Marked as recurring 🔄' : 'Not recurring';
+}
+
+function updateFamilyLabel(cb) {
+    var lbl = document.getElementById('familyLabel');
+    lbl.textContent = cb.checked ? 'Shared with Family 👨‍👩‍👧‍👦' : 'Keep Private (Personal)';
 }
 
 // Category keyword hints for client-side preview

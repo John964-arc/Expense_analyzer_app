@@ -12,7 +12,8 @@ class ExpenseService:
                     date_str: str, description: str = '',
                     category: str = None, receipt_image: str = None,
                     currency: str = 'INR', converted_amount: float = None,
-                    is_recurring: bool = False, recurring_day: int = None) -> Expense:
+                    is_recurring: bool = False, recurring_day: int = None,
+                    family_id: int = None, is_private: bool = True) -> Expense:
         """Create and persist a new expense record."""
         if category is None or category == 'auto':
             category = detect_category(name, description)
@@ -34,6 +35,8 @@ class ExpenseService:
             converted_amount = round(converted_amount, 2) if converted_amount else None,
             is_recurring     = bool(is_recurring),
             recurring_day    = int(recurring_day) if recurring_day else None,
+            family_id        = family_id,
+            is_private       = is_private
         )
         db.session.add(expense)
         db.session.commit()
@@ -81,16 +84,24 @@ class ExpenseService:
 
     @staticmethod
     def toggle_recurring(expense_id: int, user_id: int,
-                         recurring_day: int = None) -> Expense:
+                         recurring_day: int = None,
+                         recurring_type: str = 'MONTHLY',
+                         subscription_name: str = None) -> Expense:
         """Flip the is_recurring flag on an expense."""
         expense = Expense.query.filter_by(id=expense_id, user_id=user_id).first()
         if not expense:
             return None
         expense.is_recurring = not expense.is_recurring
-        if expense.is_recurring and recurring_day:
-            expense.recurring_day = recurring_day
-        elif not expense.is_recurring:
+        if expense.is_recurring:
+            if recurring_day:
+                expense.recurring_day = recurring_day
+            if recurring_type:
+                expense.recurring_type = recurring_type
+            if subscription_name:
+                expense.subscription_name = subscription_name
+        else:
             expense.recurring_day = None
+            expense.subscription_name = None
         db.session.commit()
         return expense
 

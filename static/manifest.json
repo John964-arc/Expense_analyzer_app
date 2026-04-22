@@ -1,6 +1,6 @@
 {
-  "name": "ExpenseAI",
-  "short_name": "ExpenseAI",
+  "name": "AI Expense Analyzer with Chatbot",
+  "short_name": "AI Expense",
   "description": "AI-powered personal expense analyzer and financial tracker",
   "start_url": "/",
   "display": "standalone",

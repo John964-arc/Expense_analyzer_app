@@ -29,7 +29,7 @@ class ExportService:
         buf = io.StringIO()
         writer = csv.writer(buf)
 
-        writer.writerow(['ExpenseAI Report', month_label])
+        writer.writerow(['AI Expense Analyzer Report', month_label])
         writer.writerow([])
         writer.writerow(['#', 'Date', 'Name', 'Category', 'Amount',
                          'Currency', 'Converted (INR)', 'Recurring', 'Description'])
@@ -110,7 +110,7 @@ class ExportService:
         story = []
 
         # ── Header ──────────────────────────────────────────────────────────
-        story.append(Paragraph('ExpenseAI', title_style))
+        story.append(Paragraph('AI Expense Analyzer', title_style))
         story.append(Paragraph(
             f'Expense Report — {month_label} | Generated for <b>{username}</b> | '
             f'{datetime.now().strftime("%d %b %Y, %H:%M")}',

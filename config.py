@@ -1,7 +1,11 @@
 import os
 from datetime import timedelta
+from dotenv import load_dotenv
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+
+# Load environment variables from .env.local if present
+load_dotenv(os.path.join(basedir, '.env.local'))
 
 
 class Config:
@@ -42,10 +46,11 @@ class TestingConfig(Config):
 
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = (
-        os.environ.get('DATABASE_URL') or
-        'sqlite:///' + os.path.join(basedir, 'database', 'data.sqlite')
-    )
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url and db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+        
+    SQLALCHEMY_DATABASE_URI = db_url or 'sqlite:///' + os.path.join(basedir, 'database', 'data.sqlite')
 
 
 config = {

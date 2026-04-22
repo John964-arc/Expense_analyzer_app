@@ -400,6 +400,7 @@ a:hover { color: var(--text-primary); }
   font-weight: 800;
   letter-spacing: -0.04em;
   background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent-bright));
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -1272,6 +1273,7 @@ a:hover { color: var(--text-primary); }
 }
 .dashboard-title .highlight {
   background: linear-gradient(135deg, var(--accent-bright), #38bdf8);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -1402,7 +1404,7 @@ a:hover { color: var(--text-primary); }
   padding: 20px;
   animation: cardIn 0.4s var(--ease) 0.2s both;
 }
-.chart-card-large { }
+
 
 .chart-card-header {
   display: flex;
@@ -2092,7 +2094,7 @@ a:hover { color: var(--text-primary); }
 
 /* mini savings widget on dashboard */
 .savings-mini-list { display: flex; flex-direction: column; gap: 14px; padding: 4px 0; }
-.savings-mini-item {}
+
 .savings-mini-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary); }
 .savings-mini-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
 .savings-mini-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
@@ -2259,4 +2261,10 @@ a:hover { color: var(--text-primary); }
   .savings-grid    { grid-template-columns: 1fr; }
   .search-filter-bar { padding: 10px 14px; }
   .budget-alert    { flex-direction: column; align-items: flex-start; }
+}
+
+/* Utilities */
+.d-none { display: none !important; }
+@media (min-width: 576px) {
+  .d-sm-inline { display: inline !important; }
 }

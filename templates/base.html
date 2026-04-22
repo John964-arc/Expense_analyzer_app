@@ -8,6 +8,9 @@
     <!-- PWA -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
     <meta name="theme-color" content="#0F0F1A" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='uploads/icon-192.png') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="description" content="AI Expense Analyzer with Chatbot — Your smart personal finance tracker with AI-powered insights and intelligent chatbot." />
 
     <!-- Fonts -->
@@ -31,7 +34,10 @@
         <span class="brand-name">AI Expense Analyzer</span>
     </div>
     <div class="topbar-nav">
-        <!-- Optional top-level search or breadcrumbs could go here -->
+        <button id="pwaInstallBtn" class="btn-primary btn-sm" style="display: none; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="d-none d-sm-inline">Install App</span>
+        </button>
     </div>
     <div class="topbar-user" onclick="toggleProfileSidebar()">
         {% if current_user.profile_picture %}
@@ -182,6 +188,7 @@ document.querySelectorAll('.flash').forEach(function(el){
 });
 
 // PWA Service Worker registration
+let deferredPrompt;
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
         navigator.serviceWorker.register('/static/sw.js')
@@ -189,6 +196,39 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.log('SW registration failed:', err));
     });
 }
+
+// Handle PWA Install Prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    // Stash the event so it can be triggered later
+    deferredPrompt = e;
+    // Update UI notify the user they can install the PWA
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if(installBtn) {
+        installBtn.style.display = 'flex';
+        
+        installBtn.addEventListener('click', async () => {
+            // Hide the app provided install promotion
+            installBtn.style.display = 'none';
+            // Show the install prompt
+            deferredPrompt.prompt();
+            // Wait for the user to respond to the prompt
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            // We've used the prompt, and can't use it again, throw it away
+            deferredPrompt = null;
+        });
+    }
+});
+
+// Hide button if already installed
+window.addEventListener('appinstalled', () => {
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if(installBtn) installBtn.style.display = 'none';
+    deferredPrompt = null;
+    console.log('PWA was installed');
+});
 </script>
 {% if current_user.is_authenticated %}
 <script src="{{ url_for('static', filename='js/profile.js') }}"></script>

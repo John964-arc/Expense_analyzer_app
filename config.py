@@ -1,6 +1,9 @@
 import os
 from datetime import timedelta
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = lambda *a, **k: None   # no‑op fallback
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 

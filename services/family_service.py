@@ -58,8 +58,13 @@ class FamilyService:
     @staticmethod
     def get_family_dashboard_data(group_id):
         """Aggregate shared expenses for the whole family."""
-        # Only shared expenses (is_private=False)
-        shared_expenses = Expense.query.filter_by(family_id=group_id, is_private=False).all()
+        # Only shared expenses (is_private=False) from members who allow sharing
+        sharing_members = [m.user_id for m in FamilyMember.query.filter_by(group_id=group_id, allow_sharing=True).all()]
+        shared_expenses = Expense.query.filter(
+            Expense.family_id == group_id,
+            Expense.is_private == False,
+            Expense.user_id.in_(sharing_members)
+        ).all() if sharing_members else []
         
         total_spent = sum(e.amount for e in shared_expenses)
         

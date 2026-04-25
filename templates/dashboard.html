@@ -17,7 +17,7 @@
                 <span class="chatbot-status"><span class="status-dot"></span>Online</span>
             </div>
             <button class="chatbot-toggle-btn" id="chatbotToggle" onclick="toggleChatbot()" title="Minimize">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
         </div>
 
@@ -56,6 +56,16 @@
         </div>
     </aside>
 
+    <!-- Floating Chatbot Toggle -->
+    <div class="chatbot-floating-toggle" onclick="toggleChatbot()">
+        <div class="toggle-icon-chat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 7a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm0 8a3 3 0 1 1 3-3 3 3 0 0 1-3 3z"/><path d="M12 11v2"/><path d="M11 12h2"/><path d="m19 19-2-2"/><path d="m5 5 2 2"/><path d="m19 5-2 2"/><path d="m5 19 2 2"/></svg>
+        </div>
+        <div class="toggle-icon-close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+    </div>
+
     <!-- ══════════════════════════════════
          MAIN DASHBOARD CONTENT
     ══════════════════════════════════ -->
@@ -89,7 +99,7 @@
                 </div>
                 <div class="budget-alert-bar-wrap">
                     <div class="budget-alert-bar">
-                        <div class="budget-alert-fill budget-fill-{{ w.alert }}" style="width: {{ [w.pct, 100]|min }}%"></div>
+                        <div class="budget-alert-fill budget-fill-{{ w.alert }}" style="--pct: {{ [w.pct, 100]|min }}%"></div>
                     </div>
                     <span class="budget-alert-pct">{{ w.pct }}%</span>
                 </div>
@@ -174,12 +184,12 @@
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <div class="health-grade" style="color:{{ hs.grade_color }};">{{ hs.grade }}</div>
+                    <div class="health-grade" style="--grade-color: {{ hs.grade_color }}">{{ hs.grade }}</div>
                     <div>
-                        <div class="stat-value" style="color:{{ hs.grade_color }};">{{ hs.score }}<span style="font-size:14px;color:var(--text-muted);">/100</span></div>
+                        <div class="stat-value" style="--grade-color: {{ hs.grade_color }}">{{ hs.score }}<span style="font-size:14px;color:var(--text-muted);">/100</span></div>
                         <div class="health-score-bar-wrap">
                             <div class="health-score-bar">
-                                <div class="health-score-fill" style="width:{{ hs.score }}%;background:{{ hs.grade_color }};"></div>
+                                <div class="health-score-fill" style="--pct: {{ hs.score }}%; --bg: {{ hs.grade_color }}"></div>
                             </div>
                         </div>
                     </div>
@@ -264,7 +274,7 @@
                             <span style="color:var(--text-muted);font-size:12px;">{{ goal.progress_pct }}%</span>
                         </div>
                         <div class="savings-mini-bar">
-                            <div class="savings-mini-fill" style="width:{{ goal.progress_pct }}%;background:{{ goal.color }};"></div>
+                            <div class="savings-mini-fill" style="--pct: {{ goal.progress_pct }}%; --bg: {{ goal.color }}"></div>
                         </div>
                         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px;">
                             <span>₹{{ "%.0f"|format(goal.saved_amount) }} saved</span>
@@ -294,7 +304,7 @@
                             </div>
                             <div class="txn-right">
                                 <span class="txn-amount">-₹{{ "%.2f"|format(exp.amount) }}</span>
-                                <button class="txn-delete" onclick="deleteExpense({{ exp.id }}, this)" title="Delete">
+                                <button class="txn-delete" data-id="{{ exp.id }}" title="Delete">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                                 </button>
                             </div>

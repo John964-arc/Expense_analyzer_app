@@ -32,3 +32,6 @@ gunicorn==21.2.0
 
 # Optional: enable for full receipt OCR
 # pytesseract==0.3.10
+
+# requirements.txt
+python-dotenv>=1.0

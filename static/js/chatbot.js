@@ -250,3 +250,21 @@ function nowTime() {
   var d = new Date();
   return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
 }
+
+/* ══════════════════════════════════════════════════════════════
+   TOGGLE CHATBOT WINDOW
+ ══════════════════════════════════════════════════════════════ */
+function toggleChatbot() {
+  var sidebar = document.getElementById('chatbotSidebar');
+  if (!sidebar) return;
+
+  sidebar.classList.toggle('active');
+  
+  // Focus input when opened
+  if (sidebar.classList.contains('active')) {
+    setTimeout(function() {
+      var input = document.getElementById('chatInput');
+      if (input) input.focus();
+    }, 400);
+  }
+}

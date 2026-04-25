@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from services.family_service import FamilyService
-from models.expense_model import db
+from models.expense_model import db, FamilyMember
 
 family_bp = Blueprint('family', __name__, url_prefix='/family')
 
@@ -23,7 +23,8 @@ def dashboard():
         return redirect(url_for('family.index'))
     
     data = FamilyService.get_family_dashboard_data(group.id)
-    return render_template('family/dashboard.html', group=group, data=data)
+    membership = FamilyMember.query.filter_by(user_id=current_user.id, group_id=group.id).first()
+    return render_template('family/dashboard.html', group=group, data=data, membership=membership)
 
 @family_bp.route('/create', methods=['POST'])
 @login_required
@@ -53,6 +54,18 @@ def join():
         return redirect(url_for('family.index'))
     
     flash(f'Joined "{group.name}" family group!', 'success')
+    return redirect(url_for('family.dashboard'))
+
+@family_bp.route('/toggle_sharing', methods=['POST'])
+@login_required
+def toggle_sharing():
+    """Toggle whether the user allows their data to be shared with the family."""
+    member = FamilyMember.query.filter_by(user_id=current_user.id).first()
+    if member:
+        member.allow_sharing = not member.allow_sharing
+        db.session.commit()
+        status = "enabled" if member.allow_sharing else "disabled"
+        flash(f'Family sharing {status}.', 'success')
     return redirect(url_for('family.dashboard'))
 
 @family_bp.route('/members')

@@ -286,18 +286,7 @@ function deleteExpense(expenseId, btn) {
 /* ══════════════════════════════════════════════════════════════
    5. CHATBOT TOGGLE
 ══════════════════════════════════════════════════════════════ */
-function toggleChatbot() {
-  var sidebar = document.getElementById('chatbotSidebar');
-  var toggleBtn = document.getElementById('chatbotToggle');
-  if (!sidebar) return;
 
-  var collapsed = sidebar.classList.toggle('collapsed');
-  if (toggleBtn) {
-    toggleBtn.innerHTML = collapsed
-      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"/></svg>'
-      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>';
-  }
-}
 
 
 /* ══════════════════════════════════════════════════════════════
@@ -316,3 +305,16 @@ function nowTime() {
   var d = new Date();
   return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
 }
+
+/* --------------------------------------------------------------
+   6. EVENT LISTENERS
+ -------------------------------------------------------------- */
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle transaction delete buttons
+  document.querySelectorAll('.txn-delete').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = this.getAttribute('data-id');
+      if (id) deleteExpense(id, this);
+    });
+  });
+});

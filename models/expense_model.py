@@ -226,6 +226,7 @@ class FamilyMember(db.Model):
     user_id  = db.Column(db.Integer, db.ForeignKey('users.id'),          nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey('family_groups.id'),  nullable=False)
     role     = db.Column(db.String(20), default='MEMBER') # ADMIN, MEMBER
+    allow_sharing = db.Column(db.Boolean, default=True)
     joined_at = db.Column(db.DateTime,  default=datetime.utcnow)
 
     def __repr__(self):

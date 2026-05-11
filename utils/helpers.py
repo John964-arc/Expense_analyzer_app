@@ -15,9 +15,31 @@ def login_required_custom(f):
     return decorated_function
 
 
-def format_currency(amount: float) -> str:
-    """Format a number as currency string."""
-    return f"₹{amount:,.2f}"
+def get_currency_symbol(code: str) -> str:
+    """Map currency code to symbol."""
+    symbols = {
+        'INR': '₹',
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'JPY': '¥',
+        'CAD': 'C$',
+        'AUD': 'A$',
+        'SGD': 'S$',
+        'AED': 'د.إ',
+        'CHF': 'CHF',
+        'CNY': '¥',
+        'MYR': 'RM',
+        'THB': '฿',
+        'NZD': 'NZ$',
+    }
+    return symbols.get(code.upper(), code.upper())
+
+
+def format_currency(amount: float, code: str = 'INR') -> str:
+    """Format a number as currency string with symbol."""
+    symbol = get_currency_symbol(code)
+    return f"{symbol}{amount:,.2f}"
 
 
 def get_month_range(year: int, month: int):

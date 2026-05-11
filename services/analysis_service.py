@@ -1,4 +1,5 @@
 from datetime import datetime
+from flask_login import current_user
 from services.expense_service import ExpenseService
 from services.budget_service import BudgetService
 from services.savings_service import SavingsService
@@ -15,9 +16,15 @@ class AnalysisService:
         now   = datetime.now()
         year, month = now.year, now.month
 
+        expenses        = ExpenseService.get_expenses_by_month(user_id, year, month)
         monthly_total   = round(
-            sum(e.amount for e in ExpenseService.get_expenses_by_month(user_id, year, month)), 2
+            sum(e.converted_amount if e.converted_amount is not None else e.amount for e in expenses), 2
         )
+        
+        # Currency info
+        from utils.helpers import get_currency_symbol
+        currency_code   = getattr(current_user, 'base_currency', 'INR') or 'INR'
+        currency_symbol = get_currency_symbol(currency_code)
         category_totals = ExpenseService.get_category_totals(user_id, year, month)
         weekly_data     = ExpenseService.get_weekly_totals(user_id, year, month)
 
@@ -59,7 +66,8 @@ class AnalysisService:
         # ── Insights ──────────────────────────────────────────────────────
         insights = AnalysisService._generate_insights(
             monthly_total, category_totals,
-            trend, mom_change, monthly_totals_list, budget_warnings
+            trend, mom_change, monthly_totals_list, budget_warnings,
+            currency_symbol
         )
 
         # ── Chart data ────────────────────────────────────────────────────
@@ -98,6 +106,8 @@ class AnalysisService:
             'budget_warnings': budget_warnings,
             'savings_summary': savings_summary,
             'health_score':    health,
+            'currency_symbol': currency_symbol,
+            'currency_code':   currency_code,
         }
 
     @staticmethod
@@ -218,7 +228,8 @@ class AnalysisService:
     def _generate_insights(monthly_total: float, category_totals: dict,
                            trend: str, mom_change: float,
                            monthly_totals_list: list,
-                           budget_warnings: list = None) -> list:
+                           budget_warnings: list = None,
+                           currency_symbol: str = '₹') -> list:
         """Generate human-readable insight messages."""
         insights = []
         budget_warnings = budget_warnings or []
@@ -252,10 +263,10 @@ class AnalysisService:
             if w['alert'] in ('danger', 'critical'):
                 if w['category']:
                     insights.append({'type': 'danger', 'icon': '🚨',
-                        'message': f'{w["label"]} budget exceeded! Spent ₹{w["spent"]:,.0f} of ₹{w["budget"]:,.0f}.'})
+                        'message': f'{w["label"]} budget exceeded! Spent {currency_symbol}{w["spent"]:,.0f} of {currency_symbol}{w["budget"]:,.0f}.'})
                 else:
                     insights.append({'type': 'danger', 'icon': '🚨',
-                        'message': f'Monthly budget exceeded! Spent ₹{w["spent"]:,.0f} of ₹{w["budget"]:,.0f}.'})
+                        'message': f'Monthly budget exceeded! Spent {currency_symbol}{w["spent"]:,.0f} of {currency_symbol}{w["budget"]:,.0f}.'})
 
         # Hardcoded category thresholds (fallback)
         thresholds = {'Food': 400, 'Shopping': 300, 'Entertainment': 150, 'Transport': 250}
@@ -266,7 +277,7 @@ class AnalysisService:
                 )
                 if not already_warned:
                     insights.append({'type': 'warning', 'icon': '⚠️',
-                        'message': f'{cat} spending (₹{category_totals[cat]:,.0f}) is high this month.'})
+                        'message': f'{cat} spending ({currency_symbol}{category_totals[cat]:,.0f}) is high this month.'})
 
         if not insights:
             insights.append({'type': 'success', 'icon': '✅',

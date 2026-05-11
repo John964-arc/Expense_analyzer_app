@@ -112,7 +112,7 @@ class ExpenseService:
         totals = []
         for year, month in months_list(num_months):
             expenses = ExpenseService.get_expenses_by_month(user_id, year, month)
-            totals.append(sum(e.amount for e in expenses))
+            totals.append(sum(e.converted_amount if e.converted_amount is not None else e.amount for e in expenses))
         return totals
 
     @staticmethod
@@ -121,7 +121,8 @@ class ExpenseService:
         expenses = ExpenseService.get_expenses_by_month(user_id, year, month)
         totals = {}
         for e in expenses:
-            totals[e.category] = totals.get(e.category, 0) + e.amount
+            amt = e.converted_amount if e.converted_amount is not None else e.amount
+            totals[e.category] = totals.get(e.category, 0) + amt
         return {k: round(v, 2) for k, v in sorted(totals.items(), key=lambda x: x[1], reverse=True)}
 
     @staticmethod
@@ -132,7 +133,7 @@ class ExpenseService:
         weeks    = get_week_ranges(year, month)
         for week in weeks:
             week['total'] = round(sum(
-                e.amount for e in expenses
+                e.converted_amount if e.converted_amount is not None else e.amount for e in expenses
                 if week['start'] <= e.date <= week['end']
             ), 2)
         return weeks

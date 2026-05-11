@@ -14,7 +14,8 @@ def init_db(app):
         db.create_all()  # Creates any new tables that don't yet exist
 
         # ── Column migrations for existing tables ───────────────────────────
-        _run_migrations()
+        if db.engine.name == 'sqlite':
+            _run_migrations()
 
         # ── Seed demo data only when the DB is empty ────────────────────────
         _seed_sample_data()
@@ -37,6 +38,8 @@ def _run_migrations():
         # Users table — new columns
         'ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255)',
         'ALTER TABLE users ADD COLUMN base_currency VARCHAR(3) DEFAULT "INR"',
+        'ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE',
+        'ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
     ]
     for sql in migrations:
         try:
@@ -44,6 +47,18 @@ def _run_migrations():
             db.session.commit()
         except Exception:
             db.session.rollback()
+
+    # Auto-promote the first user to admin (project owner) — raw SQL
+    # to avoid ORM referencing columns that may not exist yet
+    try:
+        db.session.execute(text(
+            "UPDATE users SET is_admin = TRUE "
+            "WHERE id = (SELECT id FROM users ORDER BY id ASC LIMIT 1) "
+            "AND (is_admin IS NULL OR is_admin = FALSE)"
+        ))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 
 def _seed_sample_data():

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}{{ data.user.username }} — Admin{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="admin-header">
+        <div>
+            <h1 class="page-title"><span class="admin-shield">👤</span> {{ data.user.username }}</h1>
+            <p class="page-subtitle">{{ data.user.email }}</p>
+        </div>
+        <div class="admin-header-actions">
+            <a href="{{ url_for('admin.users') }}" class="btn-ghost btn-sm">← Back to Users</a>
+            {% if not data.user.is_admin %}
+            <button class="btn-danger btn-sm" id="btn-delete-user" data-id="{{ data.user.id }}" data-name="{{ data.user.username }}">🗑️ Delete User</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- User Info + Stats -->
+    <div class="admin-detail-grid">
+        <div class="admin-detail-card admin-user-profile">
+            <div class="admin-profile-avatar">{{ data.user.username[0].upper() }}</div>
+            <h2 class="admin-profile-name">
+                {{ data.user.username }}
+                {% if data.user.is_admin %}<span class="admin-badge-inline">ADMIN</span>{% endif %}
+            </h2>
+            <p class="admin-profile-email">{{ data.user.email }}</p>
+            <div class="admin-profile-meta">
+                <div class="admin-profile-item">
+                    <span class="admin-profile-label">Joined</span>
+                    <span>{{ data.user.created_at.strftime('%B %d, %Y') if data.user.created_at else '—' }}</span>
+                </div>
+                <div class="admin-profile-item">
+                    <span class="admin-profile-label">Currency</span>
+                    <span>{{ data.user.base_currency or 'INR' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-detail-stats">
+            <div class="admin-mini-stat">
+                <span class="admin-mini-icon">📊</span>
+                <span class="admin-mini-label">Total Expenses</span>
+                <span class="admin-mini-value">{{ data.total_expenses }}</span>
+            </div>
+            <div class="admin-mini-stat">
+                <span class="admin-mini-icon">💰</span>
+                <span class="admin-mini-label">Total Spent</span>
+                <span class="admin-mini-value">₹{{ "%.0f"|format(data.total_spent) }}</span>
+            </div>
+            <div class="admin-mini-stat">
+                <span class="admin-mini-icon">📅</span>
+                <span class="admin-mini-label">This Month</span>
+                <span class="admin-mini-value">₹{{ "%.0f"|format(data.month_spent) }}</span>
+            </div>
+            <div class="admin-mini-stat">
+                <span class="admin-mini-icon">🎯</span>
+                <span class="admin-mini-label">Savings Goals</span>
+                <span class="admin-mini-value">{{ data.goals|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Breakdown + Recent -->
+    <div class="admin-bottom-grid">
+        <div class="admin-activity-card">
+            <div class="chart-card-header">
+                <h3 class="chart-title">Category Breakdown</h3>
+            </div>
+            {% if data.categories %}
+            <div class="admin-category-list">
+                {% for cat, total in data.categories.items() %}
+                <div class="admin-category-row">
+                    <span class="admin-category-name">{{ cat }}</span>
+                    <div class="admin-category-bar-wrap">
+                        <div class="admin-category-bar" style="--pct: {{ (total / data.total_spent * 100) if data.total_spent > 0 else 0 }}%"></div>
+                    </div>
+                    <span class="admin-category-amount">₹{{ "%.0f"|format(total) }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="admin-empty">No expense data</div>
+            {% endif %}
+        </div>
+
+        <div class="admin-activity-card">
+            <div class="chart-card-header">
+                <h3 class="chart-title">Recent Expenses</h3>
+            </div>
+            <div class="admin-activity-list">
+                {% for exp in data.recent_expenses %}
+                <div class="admin-activity-item">
+                    <div class="txn-icon txn-{{ exp.category|lower|replace(' ','-') }}">
+                        {% if exp.category == 'Food' %}🍔{% elif exp.category == 'Transport' %}🚗{% elif exp.category == 'Shopping' %}🛍️{% elif exp.category == 'Entertainment' %}🎬{% elif exp.category == 'Bills' %}⚡{% elif exp.category == 'Health' %}💊{% else %}📌{% endif %}
+                    </div>
+                    <div class="admin-activity-info">
+                        <span class="admin-activity-name">{{ exp.name }}</span>
+                        <span class="admin-activity-meta">{{ exp.category }} · {{ exp.date.strftime('%b %d') if exp.date else '—' }}</span>
+                    </div>
+                    <span class="admin-activity-amount">-₹{{ "%.2f"|format(exp.amount) }}</span>
+                </div>
+                {% endfor %}
+                {% if not data.recent_expenses %}
+                <div class="admin-empty">No expenses yet</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="admin-modal-overlay" id="deleteUserModal" style="display:none;">
+    <div class="admin-modal">
+        <div class="admin-modal-header">
+            <h3>⚠️ Delete User</h3>
+            <button class="admin-modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="admin-modal-body">
+            <p>Delete user <strong id="deleteUserName"></strong>?</p>
+            <p class="admin-modal-warning">This permanently removes the user and ALL their data. Cannot be undone.</p>
+        </div>
+        <div class="admin-modal-actions">
+            <button class="btn-ghost btn-sm" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn-danger btn-sm" id="confirmDeleteBtn" onclick="executeDeleteUser()">Delete Permanently</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let pendingDeleteUserId = null;
+function confirmDeleteUser(id, name) {
+    pendingDeleteUserId = id;
+    document.getElementById('deleteUserName').textContent = name;
+    document.getElementById('deleteUserModal').style.display = 'flex';
+}
+// Event listener for delete user button
+const deleteUserBtn = document.getElementById('btn-delete-user');
+if (deleteUserBtn) {
+    deleteUserBtn.addEventListener('click', function() {
+        confirmDeleteUser(this.dataset.id, this.dataset.name);
+    });
+}
+function closeDeleteModal() { pendingDeleteUserId = null; document.getElementById('deleteUserModal').style.display = 'none'; }
+async function executeDeleteUser() {
+    if (!pendingDeleteUserId) return;
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true; btn.textContent = 'Deleting…';
+    try {
+        const r = await fetch(`/admin/users/${pendingDeleteUserId}`, {method:'DELETE'});
+        const d = await r.json();
+        if (d.success) { window.location.href = '{{ url_for("admin.users") }}'; }
+        else { alert(d.message||'Failed.'); }
+    } catch(e) { alert('Network error.'); }
+    finally { btn.disabled=false; btn.textContent='Delete Permanently'; }
+}
+document.getElementById('deleteUserModal').addEventListener('click', function(e){ if(e.target===this) closeDeleteModal(); });
+</script>
+{% endblock %}

@@ -17,6 +17,7 @@ class User(UserMixin, db.Model):
     password_hash   = db.Column(db.String(255), nullable=False)
     profile_picture = db.Column(db.String(255), nullable=True)
     base_currency   = db.Column(db.String(3),   default='INR')
+    is_admin        = db.Column(db.Boolean,     default=False)
     created_at      = db.Column(db.DateTime,    default=datetime.utcnow)
 
     expenses      = db.relationship('Expense',      backref='owner',    lazy=True, cascade='all, delete-orphan')
@@ -29,6 +30,9 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
+
+    def __init__(self, **kwargs):
+        super(User, self).__init__(**kwargs)
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -84,6 +88,9 @@ class Expense(db.Model):
             'is_private':       self.is_private,
         }
 
+    def __init__(self, **kwargs):
+        super(Expense, self).__init__(**kwargs)
+
     def __repr__(self):
         return f'<Expense {self.name}: {self.currency}{self.amount}>'
 
@@ -114,6 +121,9 @@ class Budget(db.Model):
             'year':     self.year,
             'amount':   self.amount,
         }
+
+    def __init__(self, **kwargs):
+        super(Budget, self).__init__(**kwargs)
 
     def __repr__(self):
         cat = self.category or 'Overall'
@@ -165,6 +175,9 @@ class SavingsGoal(db.Model):
             'is_completed':  self.is_completed,
         }
 
+    def __init__(self, **kwargs):
+        super(SavingsGoal, self).__init__(**kwargs)
+
     def __repr__(self):
         return f'<SavingsGoal {self.name}: {self.progress_pct}%>'
 
@@ -192,6 +205,9 @@ class SavingsContribution(db.Model):
             'date':    self.date.strftime('%Y-%m-%d') if self.date else None,
         }
 
+    def __init__(self, **kwargs):
+        super(SavingsContribution, self).__init__(**kwargs)
+
     def __repr__(self):
         return f'<Contribution goal={self.goal_id} ₹{self.amount}>'
 
@@ -212,6 +228,9 @@ class FamilyGroup(db.Model):
     members  = db.relationship('FamilyMember', backref='group',   lazy=True, cascade='all, delete-orphan')
     expenses = db.relationship('Expense',      backref='family',  lazy=True)
 
+    def __init__(self, **kwargs):
+        super(FamilyGroup, self).__init__(**kwargs)
+
     def __repr__(self):
         return f'<FamilyGroup {self.name} [{self.invite_code}]>'
 
@@ -228,6 +247,9 @@ class FamilyMember(db.Model):
     role     = db.Column(db.String(20), default='MEMBER') # ADMIN, MEMBER
     allow_sharing = db.Column(db.Boolean, default=True)
     joined_at = db.Column(db.DateTime,  default=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        super(FamilyMember, self).__init__(**kwargs)
 
     def __repr__(self):
         return f'<FamilyMember user={self.user_id} group={self.group_id} role={self.role}>'

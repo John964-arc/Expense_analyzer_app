@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}User Management — Admin{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="admin-header">
+        <div>
+            <h1 class="page-title"><span class="admin-shield">👥</span> User Management</h1>
+            <p class="page-subtitle">{{ users|length }} registered user{{ 's' if users|length != 1 else '' }}</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn-ghost btn-sm">← Back to Admin</a>
+    </div>
+
+    <div class="admin-filters">
+        <form method="GET" class="admin-filter-form" id="userFilterForm">
+            <div class="admin-search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" class="admin-search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" name="q" value="{{ current_q }}" placeholder="Search by name or email…" class="admin-search-input" />
+            </div>
+            <select name="sort" class="admin-filter-select" onchange="this.form.submit()">
+                <option value="newest" {{ 'selected' if current_sort == 'newest' }}>Newest First</option>
+                <option value="oldest" {{ 'selected' if current_sort == 'oldest' }}>Oldest First</option>
+                <option value="name" {{ 'selected' if current_sort == 'name' }}>By Name</option>
+                <option value="most_expenses" {{ 'selected' if current_sort == 'most_expenses' }}>Most Expenses</option>
+                <option value="highest_spent" {{ 'selected' if current_sort == 'highest_spent' }}>Highest Spent</option>
+            </select>
+            <button type="submit" class="btn-primary btn-sm">Search</button>
+        </form>
+    </div>
+
+    <div class="admin-table-card">
+        <div class="admin-table-wrapper">
+            <table class="admin-table" id="usersTable">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Expenses</th>
+                        <th>Total Spent</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in users %}
+                    <tr class="admin-table-row" data-user-id="{{ item.user.id }}">
+                        <td>
+                            <div class="admin-user-cell">
+                                <div class="admin-user-avatar-sm">{{ item.user.username[0].upper() }}</div>
+                                <span class="admin-user-name">{{ item.user.username }}{% if item.user.is_admin %} <span class="admin-badge-inline">ADMIN</span>{% endif %}</span>
+                            </div>
+                        </td>
+                        <td class="admin-cell-muted">{{ item.user.email }}</td>
+                        <td><span class="admin-count-badge">{{ item.expense_count }}</span></td>
+                        <td class="admin-cell-amount">₹{{ "%.2f"|format(item.total_spent) }}</td>
+                        <td class="admin-cell-muted">{{ item.user.created_at.strftime('%b %d, %Y') if item.user.created_at else '—' }}</td>
+                        <td>
+                            <div class="admin-actions">
+                                <a href="{{ url_for('admin.user_detail', user_id=item.user.id) }}" class="admin-action-btn admin-action-view" title="View">👁️</a>
+                                {% if not item.user.is_admin %}
+                                <button class="admin-action-btn admin-action-delete btn-delete-user" title="Delete" data-id="{{ item.user.id }}" data-name="{{ item.user.username }}">🗑️</button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not users %}
+                    <tr><td colspan="6" class="admin-empty-row">No users found.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="admin-modal-overlay" id="deleteUserModal" style="display:none;">
+    <div class="admin-modal">
+        <div class="admin-modal-header">
+            <h3>⚠️ Delete User</h3>
+            <button class="admin-modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="admin-modal-body">
+            <p>Delete user <strong id="deleteUserName"></strong>?</p>
+            <p class="admin-modal-warning">This permanently removes the user and ALL their data. Cannot be undone.</p>
+        </div>
+        <div class="admin-modal-actions">
+            <button class="btn-ghost btn-sm" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn-danger btn-sm" id="confirmDeleteBtn" onclick="executeDeleteUser()">Delete Permanently</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let pendingDeleteUserId = null;
+function confirmDeleteUser(id, name) {
+    pendingDeleteUserId = id;
+    document.getElementById('deleteUserName').textContent = name;
+    document.getElementById('deleteUserModal').style.display = 'flex';
+}
+// Event listener for delete buttons
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-delete-user');
+    if (btn) {
+        confirmDeleteUser(btn.dataset.id, btn.dataset.name);
+    }
+});
+function closeDeleteModal() {
+    pendingDeleteUserId = null;
+    document.getElementById('deleteUserModal').style.display = 'none';
+}
+async function executeDeleteUser() {
+    if (!pendingDeleteUserId) return;
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true; btn.textContent = 'Deleting…';
+    try {
+        const r = await fetch(`/admin/users/${pendingDeleteUserId}`, {method:'DELETE'});
+        const d = await r.json();
+        if (d.success) {
+            const row = document.querySelector(`tr[data-user-id="${pendingDeleteUserId}"]`);
+            if (row) { row.style.opacity='0'; row.style.transform='translateX(20px)'; setTimeout(()=>row.remove(),300); }
+            closeDeleteModal();
+        } else { alert(d.message||'Failed.'); }
+    } catch(e) { alert('Network error.'); }
+    finally { btn.disabled=false; btn.textContent='Delete Permanently'; }
+}
+document.getElementById('deleteUserModal').addEventListener('click', function(e){ if(e.target===this) closeDeleteModal(); });
+</script>
+{% endblock %}

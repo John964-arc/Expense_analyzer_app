@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — ExpenseAI{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Page Header -->
+    <div class="admin-header">
+        <div>
+            <h1 class="page-title">
+                <span class="admin-shield">🛡️</span> Admin Dashboard
+            </h1>
+            <p class="page-subtitle">System overview and management</p>
+        </div>
+        <div class="admin-header-actions">
+            <a href="{{ url_for('admin.users') }}" class="btn-ghost btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Manage Users
+            </a>
+            <a href="{{ url_for('admin.expenses') }}" class="btn-ghost btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                All Expenses
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="admin-stats-grid">
+        <div class="admin-stat-card admin-stat-users">
+            <div class="admin-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="admin-stat-content">
+                <span class="admin-stat-label">Total Users</span>
+                <span class="admin-stat-value">{{ stats.total_users }}</span>
+                <span class="admin-stat-sub">
+                    {% if stats.new_users > 0 %}
+                    <span class="admin-stat-badge badge-success">+{{ stats.new_users }} this month</span>
+                    {% else %}
+                    <span class="admin-stat-badge badge-neutral">No new users</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <div class="admin-stat-card admin-stat-expenses">
+            <div class="admin-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            </div>
+            <div class="admin-stat-content">
+                <span class="admin-stat-label">Total Expenses</span>
+                <span class="admin-stat-value">{{ stats.total_expenses }}</span>
+                <span class="admin-stat-sub">{{ stats.month_expenses }} this month</span>
+            </div>
+        </div>
+
+        <div class="admin-stat-card admin-stat-amount">
+            <div class="admin-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="admin-stat-content">
+                <span class="admin-stat-label">This Month Amount</span>
+                <span class="admin-stat-value">₹{{ "%.0f"|format(stats.month_amount) }}</span>
+                <span class="admin-stat-sub">
+                    <span class="admin-stat-change {% if stats.mom_change > 0 %}change-up{% elif stats.mom_change < 0 %}change-down{% else %}change-neutral{% endif %}">
+                        {% if stats.mom_change > 0 %}▲{% elif stats.mom_change < 0 %}▼{% else %}→{% endif %}
+                        {{ "%.1f"|format(stats.mom_change|abs) }}% vs last month
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        <div class="admin-stat-card admin-stat-active">
+            <div class="admin-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="admin-stat-content">
+                <span class="admin-stat-label">Active Users</span>
+                <span class="admin-stat-value">{{ stats.active_users }}</span>
+                <span class="admin-stat-sub">users with activity this month</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Stats -->
+    <div class="admin-mini-stats">
+        <div class="admin-mini-stat">
+            <span class="admin-mini-icon">💰</span>
+            <span class="admin-mini-label">Total Platform Amount</span>
+            <span class="admin-mini-value">₹{{ "%.0f"|format(stats.total_amount) }}</span>
+        </div>
+        <div class="admin-mini-stat">
+            <span class="admin-mini-icon">🎯</span>
+            <span class="admin-mini-label">Savings Goals</span>
+            <span class="admin-mini-value">{{ stats.total_goals }}</span>
+        </div>
+        <div class="admin-mini-stat">
+            <span class="admin-mini-icon">📊</span>
+            <span class="admin-mini-label">Budgets Set</span>
+            <span class="admin-mini-value">{{ stats.total_budgets }}</span>
+        </div>
+        <div class="admin-mini-stat">
+            <span class="admin-mini-icon">👨‍👩‍👧‍👦</span>
+            <span class="admin-mini-label">Family Groups</span>
+            <span class="admin-mini-value">{{ stats.total_families }}</span>
+        </div>
+        <div class="admin-mini-stat">
+            <span class="admin-mini-icon">💎</span>
+            <span class="admin-mini-label">Total Saved</span>
+            <span class="admin-mini-value">₹{{ "%.0f"|format(stats.total_saved) }}</span>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="admin-charts-grid">
+        <div class="admin-chart-card admin-chart-large">
+            <div class="chart-card-header">
+                <h3 class="chart-title">Platform Expense Trend</h3>
+                <span class="chart-badge">6 months</span>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="adminTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="admin-chart-card">
+            <div class="chart-card-header">
+                <h3 class="chart-title">Category Distribution</h3>
+                <span class="chart-badge">All time</span>
+            </div>
+            <div class="chart-wrapper chart-pie-wrapper">
+                <canvas id="adminCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom: Recent Activity -->
+    <div class="admin-bottom-grid">
+        <!-- Recent Users -->
+        <div class="admin-activity-card">
+            <div class="chart-card-header">
+                <h3 class="chart-title">Recent Users</h3>
+                <a href="{{ url_for('admin.users') }}" class="chart-badge chart-badge-link">View All</a>
+            </div>
+            <div class="admin-activity-list">
+                {% for user in recent_users %}
+                <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" class="admin-activity-item">
+                    <div class="admin-user-avatar-sm">{{ user.username[0].upper() }}</div>
+                    <div class="admin-activity-info">
+                        <span class="admin-activity-name">
+                            {{ user.username }}
+                            {% if user.is_admin %}<span class="admin-badge-inline">ADMIN</span>{% endif %}
+                        </span>
+                        <span class="admin-activity-meta">{{ user.email }}</span>
+                    </div>
+                    <span class="admin-activity-time">{{ user.created_at.strftime('%b %d') if user.created_at else '—' }}</span>
+                </a>
+                {% endfor %}
+                {% if not recent_users %}
+                <div class="admin-empty">No users yet</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Expenses -->
+        <div class="admin-activity-card">
+            <div class="chart-card-header">
+                <h3 class="chart-title">Recent Expenses</h3>
+                <a href="{{ url_for('admin.expenses') }}" class="chart-badge chart-badge-link">View All</a>
+            </div>
+            <div class="admin-activity-list">
+                {% for item in recent_expenses %}
+                <div class="admin-activity-item">
+                    <div class="txn-icon txn-{{ item.expense.category|lower|replace(' ','-') }}">
+                        {% if item.expense.category == 'Food' %}🍔{% elif item.expense.category == 'Transport' %}🚗{% elif item.expense.category == 'Shopping' %}🛍️{% elif item.expense.category == 'Entertainment' %}🎬{% elif item.expense.category == 'Bills' %}⚡{% elif item.expense.category == 'Health' %}💊{% elif item.expense.category == 'Education' %}📚{% else %}📌{% endif %}
+                    </div>
+                    <div class="admin-activity-info">
+                        <span class="admin-activity-name">{{ item.expense.name }}</span>
+                        <span class="admin-activity-meta">{{ item.username }} · {{ item.expense.category }}</span>
+                    </div>
+                    <div class="admin-activity-right">
+                        <span class="admin-activity-amount">-₹{{ "%.2f"|format(item.expense.amount) }}</span>
+                        <span class="admin-activity-time">{{ item.expense.date.strftime('%b %d') if item.expense.date else '—' }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if not recent_expenses %}
+                <div class="admin-empty">No expenses yet</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script id="analytics-data" type="application/json">{{ analytics | tojson | safe }}</script>
+<script>
+(function() {
+    const analytics = JSON.parse(document.getElementById('analytics-data').textContent);
+    const chartColors = ['#7c5cfc','#38bdf8','#22c55e','#f59e0b','#ef4444','#ec4899','#8b5cf6','#06b6d4'];
+
+    // Expense Trend Chart
+    const trendCtx = document.getElementById('adminTrendChart');
+    if (trendCtx) {
+        new Chart(trendCtx, {
+            type: 'bar',
+            data: {
+                labels: analytics.monthly_labels,
+                datasets: [{
+                    label: 'Total Amount (₹)',
+                    data: analytics.monthly_totals,
+                    backgroundColor: 'rgba(124, 92, 252, 0.4)',
+                    borderColor: '#7c5cfc',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                }, {
+                    label: 'Expense Count',
+                    data: analytics.monthly_counts,
+                    type: 'line',
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                    pointBackgroundColor: '#38bdf8',
+                    pointRadius: 4,
+                    tension: 0.4,
+                    yAxisID: 'y1',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#8892b0', font: { size: 11 } } }
+                },
+                scales: {
+                    x: { ticks: { color: '#8892b0' }, grid: { color: 'rgba(30,40,64,0.5)' } },
+                    y: { ticks: { color: '#8892b0', callback: v => '₹' + v.toLocaleString() }, grid: { color: 'rgba(30,40,64,0.5)' } },
+                    y1: { position: 'right', ticks: { color: '#8892b0' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Category Chart
+    const catCtx = document.getElementById('adminCategoryChart');
+    if (catCtx && analytics.category_labels.length) {
+        new Chart(catCtx, {
+            type: 'doughnut',
+            data: {
+                labels: analytics.category_labels,
+                datasets: [{
+                    data: analytics.category_data,
+                    backgroundColor: chartColors.slice(0, analytics.category_labels.length),
+                    borderWidth: 0,
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#8892b0', padding: 12, font: { size: 11 }, usePointStyle: true, pointStyleWidth: 8 }
+                    }
+                }
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

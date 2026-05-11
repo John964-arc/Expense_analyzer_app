@@ -88,16 +88,17 @@ class FamilyService:
         
         group_members = FamilyMember.query.filter_by(group_id=group_id).all()
         for m in group_members:
-            user = User.query.get(m.user_id)
+            user = db.session.get(User, m.user_id)
             spend = round(member_totals.get(m.user_id, 0), 2)
+            username = user.username if user else f"User {m.user_id}"
             members_data.append({
-                'username': user.username,
+                'username': username,
                 'total_spend': spend,
                 'role': m.role
             })
             if spend > max_spend:
                 max_spend = spend
-                top_spender = user.username
+                top_spender = username
 
         # Chart data
         chart_data = {

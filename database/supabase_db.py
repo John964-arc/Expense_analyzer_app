@@ -23,6 +23,7 @@ Usage
 """
 
 import os
+# pyrefly: ignore [missing-import]
 from supabase import create_client, Client
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -31,11 +32,11 @@ from supabase import create_client, Client
 
 SUPABASE_URL: str = os.environ.get(
     "SUPABASE_URL",
-    "https://cedalfajksyophwnbwpb.supabase.co"
+    os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "https://bkjtyuzndsaeplwhdicn.supabase.co")
 )
 SUPABASE_KEY: str = os.environ.get(
     "SUPABASE_KEY",
-    "sb_publishable_DRcuxp-WHazVTjQMiTksNQ_39uHbfBI"
+    os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJranR5dXpuZHNhZXBsd2hkaWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NzcyMDQsImV4cCI6MjA5MjQ1MzIwNH0.Dv7OUthB8ZhqrABkadMIrpDxS5tU71Yngt0sIq-ml1w")
 )
 
 _client: Client | None = None

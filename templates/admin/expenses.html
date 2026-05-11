@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}All Expenses — Admin{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="admin-header">
+        <div>
+            <h1 class="page-title"><span class="admin-shield">📋</span> All Expenses</h1>
+            <p class="page-subtitle">{{ expenses|length }} expenses found</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn-ghost btn-sm">← Back to Admin</a>
+    </div>
+
+    <!-- Filters -->
+    <div class="admin-filters">
+        <form method="GET" class="admin-filter-form">
+            <div class="admin-search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" class="admin-search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" name="q" value="{{ current_q }}" placeholder="Search expenses…" class="admin-search-input" />
+            </div>
+            <select name="user_id" class="admin-filter-select" onchange="this.form.submit()">
+                <option value="">All Users</option>
+                {% for u in all_users %}
+                <option value="{{ u.user.id }}" {{ 'selected' if current_user_id == u.user.id }}>{{ u.user.username }}</option>
+                {% endfor %}
+            </select>
+            <select name="category" class="admin-filter-select" onchange="this.form.submit()">
+                <option value="all" {{ 'selected' if current_cat == 'all' }}>All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat }}" {{ 'selected' if current_cat == cat }}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+            <select name="sort" class="admin-filter-select" onchange="this.form.submit()">
+                <option value="newest" {{ 'selected' if current_sort == 'newest' }}>Newest</option>
+                <option value="oldest" {{ 'selected' if current_sort == 'oldest' }}>Oldest</option>
+                <option value="highest" {{ 'selected' if current_sort == 'highest' }}>Highest</option>
+                <option value="lowest" {{ 'selected' if current_sort == 'lowest' }}>Lowest</option>
+            </select>
+            <button type="submit" class="btn-primary btn-sm">Search</button>
+        </form>
+    </div>
+
+    <!-- Expenses Table -->
+    <div class="admin-table-card">
+        <div class="admin-table-wrapper">
+            <table class="admin-table" id="expensesTable">
+                <thead>
+                    <tr>
+                        <th>Expense</th>
+                        <th>User</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in expenses %}
+                    <tr class="admin-table-row" data-expense-id="{{ item.expense.id }}">
+                        <td>
+                            <div class="admin-expense-cell">
+                                <div class="txn-icon txn-{{ item.expense.category|lower|replace(' ','-') }}" style="width:30px;height:30px;font-size:14px;">
+                                    {% if item.expense.category == 'Food' %}🍔{% elif item.expense.category == 'Transport' %}🚗{% elif item.expense.category == 'Shopping' %}🛍️{% elif item.expense.category == 'Entertainment' %}🎬{% elif item.expense.category == 'Bills' %}⚡{% elif item.expense.category == 'Health' %}💊{% else %}📌{% endif %}
+                                </div>
+                                <div>
+                                    <span class="admin-expense-name">{{ item.expense.name }}</span>
+                                    {% if item.expense.description %}
+                                    <span class="admin-expense-desc">{{ item.expense.description[:40] }}{% if item.expense.description|length > 40 %}…{% endif %}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('admin.user_detail', user_id=item.expense.user_id) }}" class="admin-user-link">{{ item.username }}</a>
+                        </td>
+                        <td><span class="admin-cat-badge">{{ item.expense.category }}</span></td>
+                        <td class="admin-cell-amount">₹{{ "%.2f"|format(item.expense.amount) }}</td>
+                        <td class="admin-cell-muted">{{ item.expense.date.strftime('%b %d, %Y') if item.expense.date else '—' }}</td>
+                        <td>
+                            <button class="admin-action-btn admin-action-delete btn-delete-expense" title="Delete" data-id="{{ item.expense.id }}" data-name="{{ item.expense.name }}">🗑️</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not expenses %}
+                    <tr><td colspan="6" class="admin-empty-row">No expenses found.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="admin-modal-overlay" id="deleteExpenseModal" style="display:none;">
+    <div class="admin-modal">
+        <div class="admin-modal-header">
+            <h3>⚠️ Delete Expense</h3>
+            <button class="admin-modal-close" onclick="closeExpModal()">&times;</button>
+        </div>
+        <div class="admin-modal-body">
+            <p>Delete expense <strong id="deleteExpName"></strong>?</p>
+            <p class="admin-modal-warning">This action cannot be undone.</p>
+        </div>
+        <div class="admin-modal-actions">
+            <button class="btn-ghost btn-sm" onclick="closeExpModal()">Cancel</button>
+            <button class="btn-danger btn-sm" id="confirmDeleteExpBtn" onclick="executeDeleteExpense()">Delete</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let pendingExpId = null;
+function confirmDeleteExpense(id, name) {
+    pendingExpId = id;
+    document.getElementById('deleteExpName').textContent = name;
+    document.getElementById('deleteExpenseModal').style.display = 'flex';
+}
+// Event listener for delete buttons
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-delete-expense');
+    if (btn) {
+        confirmDeleteExpense(btn.dataset.id, btn.dataset.name);
+    }
+});
+function closeExpModal() { pendingExpId = null; document.getElementById('deleteExpenseModal').style.display = 'none'; }
+async function executeDeleteExpense() {
+    if (!pendingExpId) return;
+    const btn = document.getElementById('confirmDeleteExpBtn');
+    btn.disabled = true; btn.textContent = 'Deleting…';
+    try {
+        const r = await fetch(`/admin/expenses/${pendingExpId}`, {method:'DELETE'});
+        const d = await r.json();
+        if (d.success) {
+            const row = document.querySelector(`tr[data-expense-id="${pendingExpId}"]`);
+            if (row) { row.style.opacity='0'; row.style.transform='translateX(20px)'; setTimeout(()=>row.remove(),300); }
+            closeExpModal();
+        } else { alert(d.message||'Failed.'); }
+    } catch(e) { alert('Network error.'); }
+    finally { btn.disabled=false; btn.textContent='Delete'; }
+}
+document.getElementById('deleteExpenseModal').addEventListener('click', function(e){ if(e.target===this) closeExpModal(); });
+</script>
+{% endblock %}

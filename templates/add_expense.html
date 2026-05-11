@@ -39,12 +39,12 @@
                             <div class="input-wrapper" style="display:flex;gap:0;">
                                 <select id="currency" name="currency" class="form-select" style="width:90px;border-radius:var(--radius-sm) 0 0 var(--radius-sm);border-right:none;" onchange="updateCurrencyPreview()">
                                     {% for c in currencies %}
-                                    <option value="{{ c }}" {% if c == 'INR' %}selected{% endif %}>{{ c }}</option>
+                                    <option value="{{ c }}" {% if c == 'USD' %}selected{% endif %}>{{ c }}</option>
                                     {% endfor %}
                                 </select>
                                 <input type="number" id="amount" name="amount" class="form-input" placeholder="0.00" step="0.01" min="0.01" required style="border-radius:0 var(--radius-sm) var(--radius-sm) 0;" oninput="updateCurrencyPreview()" />
                             </div>
-                            <div id="convertedPreview" style="font-size:12px;color:var(--text-muted);margin-top:4px;display:none;">≈ <span id="convertedVal"></span> INR</div>
+                            <div id="convertedPreview" style="font-size:12px;color:var(--text-muted);margin-top:4px;display:none;">≈ <span id="convertedVal"></span> USD</div>
                         </div>
                     </div>
 
@@ -210,15 +210,15 @@ function updateCurrencyPreview() {
     var currency = document.getElementById('currency').value;
     var amount   = parseFloat(document.getElementById('amount').value);
     var preview  = document.getElementById('convertedPreview');
-    if (currency === 'INR' || isNaN(amount) || amount <= 0) { preview.style.display = 'none'; return; }
+    if (currency === 'USD' || isNaN(amount) || amount <= 0) { preview.style.display = 'none'; return; }
     if (ratesCache[currency]) {
         var converted = (amount * ratesCache[currency]).toFixed(2);
-        document.getElementById('convertedVal').textContent = '₹' + parseFloat(converted).toLocaleString('en-IN', {minimumFractionDigits:2});
+        document.getElementById('convertedVal').textContent = '$' + parseFloat(converted).toLocaleString('en-US', {minimumFractionDigits:2});
         preview.style.display = 'block';
     } else {
         fetch('/api/currency/rates?base=' + currency)
             .then(r => r.json())
-            .then(d => { if (d.success && d.rates) { ratesCache[currency] = d.rates['INR'] || 1; updateCurrencyPreview(); } })
+            .then(d => { if (d.success && d.rates) { ratesCache[currency] = d.rates['USD'] || 1; updateCurrencyPreview(); } })
             .catch(() => {});
     }
 }

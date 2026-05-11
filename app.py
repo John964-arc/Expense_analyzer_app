@@ -3,6 +3,10 @@ from flask import Flask, redirect, url_for
 from flask_login import LoginManager
 from config import config
 from utils.db_helper import db, init_db
+from flask_migrate import Migrate
+
+# Initialize Migrate globally
+migrate = Migrate()
 
 
 def create_app(config_name='default'):
@@ -15,6 +19,7 @@ def create_app(config_name='default'):
 
     # Init DB
     init_db(app)
+    migrate.init_app(app, db)
 
     # Flask-Login
     login_manager = LoginManager()
@@ -37,6 +42,7 @@ def create_app(config_name='default'):
     from routes.subscription_routes import subscriptions_bp
     from routes.import_routes       import import_bp
     from routes.family_routes       import family_bp
+    from routes.admin_routes        import admin_bp
 
     app.register_blueprint(auth_bp,          url_prefix='/auth')
     app.register_blueprint(expenses_bp,      url_prefix='')
@@ -46,6 +52,7 @@ def create_app(config_name='default'):
     app.register_blueprint(subscriptions_bp) # prefix='/subscriptions'
     app.register_blueprint(import_bp)        # prefix='/import'
     app.register_blueprint(family_bp)        # prefix='/family'
+    app.register_blueprint(admin_bp)         # prefix='/admin' set in blueprint
 
     @app.route('/')
     def index():

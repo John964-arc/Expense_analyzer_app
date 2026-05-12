@@ -51,9 +51,16 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     db_url = os.environ.get('DATABASE_URL')
-    if db_url and db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    if db_url:
+        # Render/Supabase compatibility
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
         
+        # Enforce SSL for Supabase if not specified
+        if "sslmode=" not in db_url:
+            separator = "&" if "?" in db_url else "?"
+            db_url += f"{separator}sslmode=require"
+            
     SQLALCHEMY_DATABASE_URI = db_url or 'sqlite:///' + os.path.join(basedir, 'database', 'data.sqlite')
 
 

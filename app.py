@@ -21,9 +21,6 @@ def create_app(config_name='default'):
     init_db(app)
     migrate.init_app(app, db)
 
-    with app.app_context():
-        db.create_all()
-
 
     # Flask-Login
     login_manager = LoginManager()

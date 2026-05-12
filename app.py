@@ -61,6 +61,9 @@ def create_app(config_name='default'):
     return app
 
 
+# Create the app instance for Gunicorn
+config_name = os.environ.get('FLASK_CONFIG') or 'default'
+app = create_app(config_name)
+
 if __name__ == '__main__':
-    app = create_app('development')
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -28,6 +28,16 @@ class Config:
     # Default base currency for new users
     DEFAULT_CURRENCY            = 'INR'
 
+    # Database engine options for stability on Render/Supabase
+    # pool_pre_ping ensures stale connections are restarted
+    # pool_recycle prevents connections from staying open too long
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+        "pool_size": 10,
+        "max_overflow": 20,
+    }
+
     # Supported currencies list
     SUPPORTED_CURRENCIES = [
         'INR', 'USD', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD',

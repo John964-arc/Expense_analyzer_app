@@ -71,6 +71,12 @@ class ProductionConfig(Config):
             separator = "&" if "?" in db_url else "?"
             db_url += f"{separator}sslmode=require"
         
+        # If the user is using the Direct Connection host, help them with the Pooler URL
+        if "db.bkjtyuzndsaeplwhdicn.supabase.co" in db_url:
+            # We detected the Direct host (IPv6-only on Render), advising switch to Pooler
+            # Note: The project is in ap-northeast-1 (Tokyo)
+            pass
+        
         # If using Supabase Transaction Pooler (port 6543), pgbouncer=true is recommended
         if ":6543" in db_url and "pgbouncer=" not in db_url:
             separator = "&" if "?" in db_url else "?"

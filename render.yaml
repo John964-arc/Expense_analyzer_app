@@ -3,8 +3,8 @@ services:
     name: ai-expense-analyzer
     env: python
     plan: free
-    buildCommand: "python -m pip install --upgrade pip setuptools wheel && pip install -r requirements.txt"
-    startCommand: "gunicorn \"app:create_app('production')\""
+    buildCommand: "python -m pip install --upgrade pip setuptools wheel && pip install flask-migrate && pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
     envVars:
       - key: FLASK_ENV
         value: production

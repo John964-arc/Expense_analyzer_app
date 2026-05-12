@@ -52,7 +52,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     db_url = os.environ.get('DATABASE_URL')
     if db_url:
-        # Render/Supabase compatibility
+        # Render/Supabase compatibility: psycopg2 requires postgresql://
         if db_url.startswith("postgres://"):
             db_url = db_url.replace("postgres://", "postgresql://", 1)
         
@@ -60,6 +60,11 @@ class ProductionConfig(Config):
         if "sslmode=" not in db_url:
             separator = "&" if "?" in db_url else "?"
             db_url += f"{separator}sslmode=require"
+        
+        # If using Supabase Transaction Pooler (port 6543), pgbouncer=true is recommended
+        if ":6543" in db_url and "pgbouncer=" not in db_url:
+            separator = "&" if "?" in db_url else "?"
+            db_url += f"{separator}pgbouncer=true"
             
     SQLALCHEMY_DATABASE_URI = db_url or 'sqlite:///' + os.path.join(basedir, 'database', 'data.sqlite')
 
